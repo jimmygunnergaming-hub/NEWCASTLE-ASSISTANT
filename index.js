@@ -1,103 +1,190 @@
-const express = require('express');
-const app = express();
-const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { 
+  Client, 
+  GatewayIntentBits, 
+  SlashCommandBuilder, 
+  ActionRowBuilder, 
+  UserSelectMenuBuilder, 
+  StringSelectMenuBuilder,
+  EmbedBuilder 
+} = require('discord.js');
 
-app.use(express.json());
-
-const liveSessions = new Map();
-
-// -------------------------------------------------------------
-// WEB APP STADIUM INTERFACE
-// -------------------------------------------------------------
-app.get('/pitch/:sessionId', (req, res) => {
-  const session = liveSessions.get(req.params.sessionId);
-  if (!session) return res.status(404).send('Lineup session expired.');
-
-  let nodesHtml = '';
-  session.roster.forEach((player, idx) => {
-    const pctY = 85 - (idx * (70 / Math.max(1, session.total - 1)));
-    const pctX = 50 + (idx % 2 === 0 ? (idx * 3) : -(idx * 3));
-    
-    nodesHtml += '<div class="player-node" id="node_' + idx + '" style="left: ' + pctX + '%; top: ' + pctY + '%;" mousedown="startNodeDrag(event, ' + idx + ')" onclick="handleNodeClick(' + idx + ')">';
-    nodesHtml += '<div id="avatar_box_' + idx + '" class="w-100 h-100 d-flex align-items-center justify-content-center"><span style="font-size:20px; color:#95a5a6;">⚪</span></div>';
-    nodesHtml += '<div class="label-container">';
-    nodesHtml += '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>';
-    nodesHtml += '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>';
-    nodesHtml += '</div></div>';
-  });
-
-  let page = '<!DOCTYPE html><html><head><title>Tactical Field Dashboard</title><meta name="viewport" content="width=device-width, initial-scale=1.0">';
-  page += '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
-  page += '<style>body { background: #111; color: #fff; font-family: "Segoe UI", sans-serif; text-align: center; overflow-x: hidden; }';
-  page += '.pitch-environment { position: relative; width: 100%; max-width: 700px; height: 80vh; margin: 20px auto; background: #1e722a; border: 4px solid #fff; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }';
-  page += '.midfield-line { position: absolute; top: 50%; left: 0; width: 100%; height: 4px; background: #fff; }';
-  page += '.center-circle { position: absolute; top: 50%; left: 50%; width: 140px; height: 140px; border: 4px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }';
-  page += '.penalty-box-top { position: absolute; top: 0; left: 50%; width: 260px; height: 120px; border: 4px solid #fff; transform: translateX(-50%); border-top: none; }';
-  page += '.penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 260px; height: 120px; border: 4px solid #fff; transform: translateX(-50%); border-bottom: none; }';
-  page += '.player-node { position: absolute; width: 70px; height: 70px; background: #2c3e50; border: 3px solid #f1c40f; border-radius: 50%; cursor: move; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }';
-  page += '.player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }';
-  page += '.label-container { position: absolute; bottom: -45px; width: 120px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; }';
-  page += '.pos-name { color: #f1c40f; text-transform: uppercase; }.usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }';
-  page += '.modal-content { background: #222; color: #fff; border: 2px solid #f1c40f; }.member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; padding: 10px; margin-bottom: 5px; }.member-card:hover { background: #f1c40f; color: #000; }</style></head>';
-  page += '<body class="container-fluid py-3"><h3>⚽ NEWCASTLE ASSISTANT STRATEGY CONSOLE</h3><p class="text-muted">Drag circles anywhere. Click a circle to name its position and assign players!</p>';
-  page += '<div class="pitch-environment" id="pitch"><div class="midfield-line"></div><div class="center-circle"></div><div class="penalty-box-top"></div><div class="penalty-box-bot"></div>' + nodesHtml + '</div>';
-  page += '<button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Save & Send to Discord</button>';
-  page += '<div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-secondary"><h5 class="modal-title">Set Position Name</h5></div><div class="modal-body text-start"><label class="form-label text-muted">What position is this circle? (e.g. GK, CB, Striker)</label><input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker"></div><div class="modal-footer border-secondary"><button type="button" class="btn btn-warning w-100" onclick="submitPositionName()">Next: Choose Player ➡️</button></div></div></div></div>';
-  page += '<div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header border-secondary"><h5 class="modal-title">Select Team Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-2" id="memberListContainer"></div></div></div></div></div>';
-  page += '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>';
-  page += '<script>';
-  page += 'const sessionData = ' + JSON.stringify(session) + '; let activeEditIdx = null; let posModal, pickerModal;';
-  page += 'document.addEventListener("DOMContentLoaded", () => { posModal = new bootstrap.Modal(document.getElementById("positionModal")); pickerModal = new bootstrap.Modal(document.getElementById("pickerModal")); });';
-  page += 'function startNodeDrag(e, idx) { if (e.target.closest(".label-container")) return; const node = document.getElementById("node_" + idx); const pitch = document.getElementById("pitch"); function onMouseMove(event) { const rect = pitch.getBoundingClientRect(); let x = ((event.clientX - rect.left) / rect.width) * 100; let y = ((event.clientY - rect.top) / rect.height) * 100; if(x >= 5 && x <= 95) node.style.left = x + "%"; if(y >= 5 && y <= 95) node.style.top = y + "%"; } document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", () => document.removeEventListener("mousemove", onMouseMove), {once: true}); }';
-  page += 'function handleNodeClick(idx) { activeEditIdx = idx; document.getElementById("posNameInput").value = sessionData.roster[idx].posLabel; posModal.show(); }';
-  page += 'function submitPositionName() { const inputVal = document.getElementById("posNameInput").value.trim(); const finalPosName = inputVal || "POS #" + (activeEditIdx + 1); sessionData.roster[activeEditIdx].posLabel = finalPosName; document.getElementById("lbl_pos_" + activeEditIdx).innerText = finalPosName; posModal.hide(); openPlayerPicker(); }';
-  page += 'function openPlayerPicker() { const container = document.getElementById("memberListContainer"); container.innerHTML = ""; sessionData.serverMembers.forEach(m => { const div = document.createElement("div"); div.className = "col-12 member-card d-flex align-items-center gap-3"; div.innerHTML = "<img src=\'" + m.avatar + "\' style=\'width:40px; height:40px; border-radius:50%;\' /><b>" + m.name + "</b>"; div.onclick = () => assignUser(m.name, m.avatar); container.appendChild(div); }); pickerModal.show(); }';
-  page += 'function assignUser(name, avatar) { pickerModal.hide(); document.getElementById("avatar_box_" + activeEditIdx).innerHTML = "<img src=\'" + avatar + "\' />"; document.getElementById("lbl_usr_" + activeEditIdx).innerText = name; sessionData.roster[activeEditIdx].assignedUser = { name, avatar }; }';
-  page += 'function saveAndPostToDiscord() { fetch("/api/save-lineup/" + sessionData.id, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roster: sessionData.roster }) }).then(() => alert("Lineup finalized! You can close this tab and check Discord.")); }';
-  page += '</script></body></html>';
-
-  res.send(page);
+const client = new Client({ 
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] 
 });
 
-app.post('/api/save-lineup/:id', async (req, res) => {
-  const session = liveSessions.get(req.params.id);
-  if (!session) return res.sendStatus(404);
-
-  session.roster = req.body.roster;
-
-  const summaryEmbed = new EmbedBuilder()
-    .setColor(0xf1c40f)
-    .setTitle('📋 Squad Lineup Finalized')
-    .setDescription('The customized tactical system build is complete:');
-
-  session.roster.forEach((slot) => {
-    const userDisplay = slot.assignedUser 
-      ? '👤 **' + slot.assignedUser.name + '**\n[Profile Picture](' + slot.assignedUser.avatar + ')' 
-      : '*Unassigned Empty Slot*';
-    
-    summaryEmbed.addFields({ name: 'Position: ' + slot.posLabel, value: userDisplay, inline: true });
-  });
-
-  try {
-    const channel = await client.channels.fetch(session.channelId);
-    await channel.send({ content: '✅ **Lineup successfully published by <@' + session.creatorId + '>!**', embeds: [summaryEmbed] });
-  } catch (err) { console.error(err); }
-
-  res.sendStatus(200);
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log('Web dashboard environment online.'));
-
-// -------------------------------------------------------------
-// BOT ENGINE
-// -------------------------------------------------------------
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const activeLineups = new Map();
 
 client.once('ready', () => {
-  console.log('Bot connection validated successfully! Authorized as ' + client.user.tag);
-  
+  console.log(`Bot connection validated successfully! Authorized as ${client.user.tag}`);
+
+  // Generates choice formats dynamically from 1v1 up to 11v11
+  const formatChoices = [];
+  for (let i = 1; i <= 11; i++) {
+    formatChoices.push({ name: `${i}v${i} Layout`, value: i.toString() });
+  }
+
   const command = new SlashCommandBuilder()
     .setName('lineup')
-    .setDescription('Open the football pitch workspace')
-    .addIntegerOption(option =>
+    .setDescription('Build your team roster lineup step-by-step in chat')
+    .addStringOption(option => 
+      option.setName('format')
+        .setDescription('Select match format size')
+        .setRequired(true)
+        .addChoices(...formatChoices));
+
+  client.application.commands.create(command);
+});
+
+client.on('interactionCreate', async interaction => {
+  // SECURITY LOCK CONTROLLER: Blocks random users from clicking the coach's session menus
+  if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
+    const session = activeLineups.get(interaction.message.id);
+    if (session && session.creatorId !== interaction.user.id) {
+      return interaction.reply({ 
+        content: '❌ Only the coach who typed `/lineup` can interact with this selector panel.', 
+        ephemeral: true 
+      });
+    }
+  }
+
+  // 1. CHAT COMMAND INVOCATION
+  if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
+    const totalPlayers = parseInt(interaction.options.getString('format'));
+    
+    // Provide target strategy suggestions based on size inputs
+    let formationOptions = [];
+    if (totalPlayers === 6) {
+      formationOptions = [{ label: '2-2-2 Strategic Grid Layout', value: '2-2-2' }];
+    } else if (totalPlayers === 11) {
+      formationOptions = [
+        { label: '4-4-2 Traditional Balanced', value: '4-4-2' },
+        { label: '4-3-3 Heavy Attacking', value: '4-3-3' }
+      ];
+    } else {
+      formationOptions = [{ label: 'Standard Balanced Field Positioning', value: 'Balanced' }];
+    }
+
+    const row = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`form_${totalPlayers}`)
+        .setPlaceholder('Select tactical lineup system formation...')
+        .addOptions(formationOptions)
+    );
+
+    const msg = await interaction.reply({
+      content: `👥 **Creating a ${totalPlayers}v${totalPlayers} matchup setup.** Please choose your starting formation:`,
+      components: [row],
+      fetchReply: true
+    });
+
+    // Save empty session tracking map metadata values
+    activeLineups.set(msg.id, {
+      creatorId: interaction.user.id,
+      total: totalPlayers,
+      formation: 'None',
+      currentIndex: 0,
+      labels: [],
+      roster: []
+    });
+    return;
+  }
+
+  // 2. TACTICAL SYSTEM SELECT PARSER
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('form_')) {
+    const msgId = interaction.message.id;
+    const session = activeLineups.get(msgId);
+    if (!session) return;
+
+    const totalPlayers = parseInt(interaction.customId.split('_')[1]);
+    session.formation = interaction.values[0];
+
+    // Map customized football position labels into arrays matching specific choices
+    if (totalPlayers === 6 && session.formation === '2-2-2') {
+      session.labels = ['GK (Goalkeeper)', 'DEF-L (Left Defender)', 'DEF-R (Right Defender)', 'MID-L (Left Midfielder)', 'MID-R (Right Midfielder)', 'ST (Striker)'];
+    } else if (totalPlayers === 11 && session.formation === '4-4-2') {
+      session.labels = ['GK', 'LB', 'CB1', 'CB2', 'RB', 'LM', 'CM1', 'CM2', 'RM', 'ST1', 'ST2'];
+    } else {
+      // General numeric position generation fallback block
+      for (let i = 1; i <= totalPlayers; i++) {
+        session.labels.push(i === 1 ? 'GK (Goalkeeper)' : `Player Node #${i}`);
+      }
+    }
+
+    return advanceLineupProcess(interaction, msgId);
+  }
+
+  // 3. STEPPER SELECTION POOL CONTROLLER
+  if (interaction.isUserSelectMenu() && interaction.customId === 'player_picker') {
+    const msgId = interaction.message.id;
+    const session = activeLineups.get(msgId);
+    if (!session) return interaction.reply({ content: 'Session timeline data expired.', ephemeral: true });
+
+    const targetUser = interaction.users.first();
+    const currentPosLabel = session.labels[session.currentIndex];
+
+    // Map selected member profile assets to database index tracking positions
+    session.roster.push({
+      name: targetUser.username,
+      position: currentPosLabel,
+      avatarUrl: targetUser.displayAvatarURL({ extension: 'png', size: 256 })
+    });
+
+    session.currentIndex++;
+
+    // Check if configuration loops match requested count total limits
+    if (session.currentIndex >= session.total) {
+      const finalEmbed = new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle(`📋 Newcastle Squad Roster Confirmed (${session.total}v${session.total})`)
+        .setDescription(`**Tactical System Setup Strategy:** \`${session.formation}\`\nFinal starting roster breakdown list displayed directly below:`);
+
+      session.roster.forEach(player => {
+        finalEmbed.addFields({ 
+          name: `🟢 ${player.position}`, 
+          value: `**Assigned:** ${player.name}\n[View Profile Picture Avatar Link](${player.avatarUrl})`, 
+          inline: true 
+        });
+      });
+
+      await interaction.update({
+        content: `✅ **Lineup build complete!** Roster sheet has been locked and published down inside the public field card logs.`,
+        embeds: [finalEmbed],
+        components: []
+      });
+      
+      return activeLineups.delete(msgId);
+    } else {
+      return advanceLineupProcess(interaction, msgId);
+    }
+  }
+});
+
+// Dynamic menu status tracking builder function
+async function advanceLineupProcess(interaction, msgId) {
+  const session = activeLineups.get(msgId);
+  const currentPosLabel = session.labels[session.currentIndex];
+
+  let visualizationProgress = `⚽ **Camp Nou Pitch Position Status:** \`${session.formation}\`\n\n`;
+  for (let i = 0; i < session.total; i++) {
+    if (i === session.currentIndex) {
+      visualizationProgress += `🟢 **[Active Pick: ${session.labels[i]}]**\n`;
+    } else if (i < session.currentIndex) {
+      visualizationProgress += `✅ ${session.roster[i].position}: **${session.roster[i].name}**\n`;
+    } else {
+      visualizationProgress += `⚪ ${session.labels[i]}: *Empty Slot Position*\n`;
+    }
+  }
+
+  const userSelect = new UserSelectMenuBuilder()
+    .setCustomId('player_picker')
+    .setPlaceholder(`Click here to pick the person for: ${currentPosLabel}`);
+
+  const row = new ActionRowBuilder().addComponents(userSelect);
+
+  await interaction.update({
+    content: `🏟️ **NEWCASTLE ASSISTANT STRATEGY BUILDER PANEL**\n\n${visualizationProgress}`,
+    components: [row]
+  });
+}
+
+client.login(process.env.DISCORD_TOKEN);
