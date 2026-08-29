@@ -26,14 +26,14 @@ client.on('interactionCreate', async (interaction) => {
   // Security authorization lock check
   if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
-    const msgId = customId.includes('_') ? customId.split('_').pop() : interaction.message.id;
+    const msgId = customId.split('-').pop(); // Fixed array splitting logic to prevent end of input crash
     const session = activeSessions.get(msgId);
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ content: '❌ Only the coach who started this lineup command can customize slots.', ephemeral: true });
     }
   }
 
-  // 1. SLASH COMMAND INITIALIZATION (Hidden from other server members)
+  // 1. SLASH COMMAND INITIALIZATION (Hidden ephemerally from other users)
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
@@ -45,16 +45,16 @@ client.on('interactionCreate', async (interaction) => {
       creatorId: interaction.user.id, 
       channelId: interaction.channelId,
       total: size, 
-      activeSlotIdx: null,
-      roster: Array.from({ length: size }, (_, i) => ({ index: i, posLabel: i === 0 ? 'GK' : `POS #${i + 1}`, assignedUser: null }))
+      activeSlotIdx: 0,
+      roster: Array.from({ length: size }, (_, i) => ({ index: i, posLabel: i === 0 ? 'GK' : 'POS #' + (i + 1), assignedUser: null }))
     });
     
     return renderFieldGraphic(interaction, msg.id, false);
   }
 
   // 2. TRIGGER POSITION SELECTION SYSTEM
-  if (interaction.isButton() && interaction.customId.startsWith('slot_')) {
-    const parts = interaction.customId.split('_');
+  if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
+    const parts = interaction.customId.split('-');
     const targetIdx = parseInt(parts[1]);
     const msgId = parts[2];
     const session = activeSessions.get(msgId);
@@ -76,20 +76,20 @@ client.on('interactionCreate', async (interaction) => {
     ];
 
     const posSelectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`select_pos_label_${msgId}`)
+      .setCustomId('select-pos-' + msgId)
       .setPlaceholder('⚽ Choose the position name for this slot...')
       .addOptions(positionOptions);
 
     return interaction.reply({
-      content: `⚙️ **Step 1:** Select the role abbreviation name for **Slot #${targetIdx + 1}**:`,
+      content: '⚙️ **Step 1:** Select the role abbreviation name for **Slot #' + (targetIdx + 1) + '**:',
       components: [new ActionRowBuilder().addComponents(posSelectMenu)],
       ephemeral: true
     });
   }
 
   // 3. PARSE POSITION AND TRIGGER ROSTER CHOOSE LIST
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('select_pos_label_')) {
-    const msgId = interaction.customId.split('_').pop();
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('select-pos-')) {
+    const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -97,18 +97,18 @@ client.on('interactionCreate', async (interaction) => {
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
-      .setCustomId(`assign_user_${msgId}`)
-      .setPlaceholder(`👉 Select player to place into: ${chosenPos}`);
+      .setCustomId('assign-user-' + msgId)
+      .setPlaceholder('👉 Select player to place into: ' + chosenPos);
 
     return interaction.update({
-      content: `⚙️ *Position defined as [${chosenPos}].* Step 2: Choose your player from the live server roster list below:`,
+      content: '⚙️ *Position defined as [' + chosenPos + '].* Step 2: Choose your player from the live server roster list below:',
       components: [new ActionRowBuilder().addComponents(rosterPickerMenu)]
     });
   }
 
   // 4. MAP USER SELECTION VALUE AND REPAINT FIELD GRAPHIC
-  if (interaction.isUserSelectMenu() && interaction.customId.startsWith('assign_user_')) {
-    const msgId = interaction.customId.split('_').pop();
+  if (interaction.isUserSelectMenu() && interaction.customId.startsWith('assign-user-')) {
+    const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -123,8 +123,8 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 5. FINALIZE AND PUBLICLY PUBLISH TEAM SHEET EMBED
-  if (interaction.isButton() && interaction.customId.startsWith('confirm_')) {
-    const msgId = interaction.customId.split('_').pop();
+  if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
+    const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -138,18 +138,18 @@ client.on('interactionCreate', async (interaction) => {
 
     const destinationEmbed = new EmbedBuilder()
       .setColor(0x2ecc71)
-      .setTitle(`📋 Squad Lineup Finalized (${session.total}v${session.total})`)
+      .setTitle('📋 Squad Lineup Finalized (' + session.total + 'v' + session.total + ')')
       .setDescription('The customized tactical system build is complete. Final roster sheet details displayed below:')
       .setImage('attachment://finalized-team-roster.png');
 
     session.roster.forEach((slot) => {
-      destinationEmbed.addFields({ name: `Position: ${slot.posLabel}`, value: `👤 **${slot.assignedUser.name}**`, inline: true });
+      destinationEmbed.addFields({ name: 'Position: ' + slot.posLabel, value: '👤 **' + slot.assignedUser.name + '**', inline: true });
     });
 
     try {
       const targetChannel = await client.channels.fetch('1542615988963385403');
       await targetChannel.send({ 
-        content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
+        content: '✅ **Lineup successfully locked and published by <@' + session.creatorId + '>!**', 
         embeds: [destinationEmbed],
         files: [finalAttachment] 
       });
@@ -226,4 +226,3 @@ async function renderFieldGraphic(interaction, msgId, isEdit) {
   const finishRow = new ActionRowBuilder();
 
   session.roster.forEach((slot, index) => {
-    const btn = new ButtonBuilder()
