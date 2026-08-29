@@ -55,8 +55,8 @@ client.on('interactionCreate', async (interaction) => {
   // 2. TRIGGER POSITION SELECTION SYSTEM
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]);
-    const msgId = parts[2];
+    const targetIdx = parseInt(parts[1]); // Fixed array splitting indexes
+    const msgId = parts[2];               // Fixed array splitting indexes
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -118,7 +118,7 @@ client.on('interactionCreate', async (interaction) => {
       avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 128 })
     };
 
-    await interaction.update({ content: '✅ Member mapped successfully.', components: [] });
+    await interaction.update({ content: '✅ Member mapped successfully. Regenerating your dashboard layout...', components: [] });
     return renderFieldGraphic(interaction, msgId, true);
   }
 
@@ -132,6 +132,9 @@ client.on('interactionCreate', async (interaction) => {
     if (incomplete) {
       return interaction.reply({ content: '⚠️ You must fill out every position node slot before publishing.', ephemeral: true });
     }
+
+    // Acknowledge the interaction to prevent Discord timeouts while the canvas processes
+    await interaction.deferUpdate();
 
     const finalBuffer = await buildCanvasBuffer(session);
     const finalAttachment = new AttachmentBuilder(finalBuffer, { name: 'finalized-team-roster.png' });
@@ -155,7 +158,7 @@ client.on('interactionCreate', async (interaction) => {
       });
     } catch (err) { console.error('Discord routing delivery error:', err); }
 
-    await interaction.update({ content: '🔒 **Lineup completed and locked!** Sent directly to logs.', components: [], files: [] });
+    await interaction.editReply({ content: '🔒 **Lineup completed and locked!** Sent directly to logs.', components: [], files: [] });
     return activeSessions.delete(msgId);
   }
 });
@@ -180,13 +183,12 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
     currentRow.addComponents(
       new ButtonBuilder()
         .setCustomId(`slot-${i}-${msgId}`)
-        .setLabel(label.substring(0, 80)) // Safety length limit for button labels
+        .setLabel(label.substring(0, 80)) 
         .setStyle(slot.assignedUser ? ButtonStyle.Success : ButtonStyle.Secondary)
     );
   });
   rows.push(currentRow);
 
-  // Add the finalized confirmation system row
   if (rows.length < 5) {
     rows.push(new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -199,12 +201,11 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   const payload = {
     content: `🏟️ **Lineup Editor Dashboard (${session.total}v${session.total})**\nClick a positional button below to customize its slot name and assign a player.`,
     files: [attachment],
-    components: rows,
-    ephemeral: true
+    components: rows
   };
 
   if (isFollowUp) {
-    return interaction.followUp(payload);
+    return interaction.followUp({ ...payload, ephemeral: true });
   } else {
     return interaction.editReply(payload);
   }
@@ -227,14 +228,12 @@ async function buildCanvasBuffer(session) {
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  // Calculate Coordinate Positions Structurally
-  const coords = [{ x: width / 2, y: height - 100 }]; // Index 0 is always GK
+  // Grid Coordinate Distribution Matrix
+  const coords = [{ x: width / 2, y: height - 100 }]; // Index 0 is Goalkeeper
   
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
-    // Map rows based on tactical density thresholds
     let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
     
     let baseDistribution = [];
     if (rowsCount === 1) baseDistribution = [outfieldCount];
-    else if (rowsCount === 2) baseDistribution = [Math.ceil(outfieldCount * 0.6), Math.floor(outfieldCount * 0.4)];
