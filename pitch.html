@@ -58,7 +58,6 @@
     <button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
   </div>
 
-  <!-- Step 1: Position Name Form Popup -->
   <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -74,7 +73,6 @@
     </div>
   </div>
 
-  <!-- Step 2: Member Roster Card Panel -->
   <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
@@ -116,14 +114,12 @@
         node.style.left = pctX + '%';
         node.style.top = pctY + '%';
 
-        // Separate drag container handle from click selection zones
         const handle = document.createElement('div');
         handle.className = 'drag-handle';
         handle.id = 'handle_' + idx;
         handle.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>';
         
         handle.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
-        // Single tap trigger behavior logic
         handle.addEventListener('click', (e) => {
           if (!node.classList.contains('dragging')) {
             handleNodeClick(idx);
@@ -149,9 +145,8 @@
     function startNodeDrag(e, idx) {
       const node = document.getElementById('node_' + idx);
       const pitch = document.getElementById('pitch');
-      node.classList.remove('dragging');
-      
       let moved = false;
+      
       function onMouseMove(event) {
         moved = true;
         node.classList.add('dragging');
@@ -207,3 +202,10 @@
       
       document.getElementById('avatar_box_' + activeEditIdx).innerHTML = '<img src="' + avatar + '" style="width:100%; height:100%; border-radius:50%;" />';
       document.getElementById('lbl_usr_' + activeEditIdx).innerText = name;
+      sessionData.roster[activeEditIdx].assignedUser = { name: name, avatar: avatar };
+    }
+
+    function saveAndPostToDiscord() {
+      const pitchElement = document.getElementById('pitch');
+      htmlToImage.toPng(pitchElement, { cacheBust: true })
+        .then(function (dataUrl) {
