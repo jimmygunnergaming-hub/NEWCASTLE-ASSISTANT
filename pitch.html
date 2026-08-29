@@ -45,13 +45,9 @@
 </head>
 <body>
 
-  <!-- STRICT LOCKOUT OVERLAY FOR UNAUTHORIZED USERS -->
   <div id="lockout-screen">
     <h1 style="color: #e74c3c; font-weight: bold; margin-bottom: 15px;">🔒 Unauthorized Access Lockout</h1>
-    <p style="font-size: 18px; max-width: 600px; text-align: center; color: #ccc;">
-      This live tactical workspace dashboard can only be modified by the team coach who triggered the lineup generation command. 
-      The finalized team sheet graphics will be published directly into the logs channel once confirmed.
-    </p>
+    <p style="font-size: 18px; max-width: 600px; text-align: center; color: #ccc;">This live tactical workspace dashboard can only be modified by the team coach who triggered the lineup generation command.</p>
   </div>
 
   <div class="top-controls">
@@ -69,7 +65,6 @@
     </div>
   </div>
 
-  <!-- PLAYER SELECTION ROSTER MODAL -->
   <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
       <div class="modal-content">
@@ -87,8 +82,6 @@
     let currentUserId = "";
 
     const sessionId = window.location.pathname.split('/').pop();
-
-    // Pull current user id mapping straight from window URL params if present
     const urlParams = new URLSearchParams(window.location.search);
     currentUserId = urlParams.get('uid') || "";
 
@@ -96,8 +89,6 @@
       .then(res => res.json())
       .then(data => {
         sessionData = data;
-        
-        // Strict runtime gate evaluation block
         if (currentUserId !== sessionData.creatorId) {
           document.getElementById('lockout-screen').style.display = 'flex';
           return;
@@ -134,16 +125,12 @@
             <div class="usr-name" onclick="openRosterPicker(${idx})">${player.name}</div>
           </div>
           <div class="pad-controls">
-            <div class="pad-row">
-              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, -2)">▲</button>
-            </div>
+            <div class="pad-row"><button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, -2)">▲</button></div>
             <div class="pad-row">
               <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, -1.5, 0)">◀</button>
               <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 1.5, 0)">▶</button>
             </div>
-            <div class="pad-row">
-              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, 2)">▼</button>
-            </div>
+            <div class="pad-row"><button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, 2)">▼</button></div>
           </div>
         `;
 
@@ -166,3 +153,13 @@
         document.addEventListener('mousemove', dragMove);
         document.addEventListener('mouseup', stopDrag);
         document.addEventListener('touchmove', dragMove, { passive: false });
+        document.addEventListener('touchend', stopDrag);
+      }
+
+      function dragMove(e) {
+        if (!isDragging) return;
+        const pitch = document.getElementById('pitch').getBoundingClientRect();
+        const clientX = e.touches ? e.touches.clientX : e.clientX;
+        const clientY = e.touches ? e.touches.clientY : e.clientY;
+
+        let x = ((clientX - pitch.left) / pitch.width) * 100;
