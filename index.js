@@ -27,7 +27,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
-    const msg = await interaction.reply({ content: '🏟️ Initializing high-quality pitch layout...', fetchReply: true });
+    const msg = await interaction.reply({ content: '🏟 *Initializing high-quality pitch layout...', fetchReply: true });
     
     activeSessions.set(msg.id, { 
       creatorId: interaction.user.id, 
@@ -170,7 +170,7 @@ async function generatePitch(interaction, msgId, isEdit) {
   }
 }
 
-// COMPASS PASS FOR LOCKING AND LOGGING SHEET MAPS PUBLICLY
+// COMPLETE PASS FOR LOCKING AND LOGGING SHEET MAPS PUBLICLY
 async function finishLineup(interaction, msgId) {
   const session = activeSessions.get(msgId);
   if (!session) return;
@@ -223,7 +223,7 @@ async function finishLineup(interaction, msgId) {
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.stroke();
       } catch (err) {
         ctx.fillStyle = '#e67e22';
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); fill();
       }
 
       ctx.textAlign = 'center';
