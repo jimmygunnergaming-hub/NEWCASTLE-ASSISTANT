@@ -6,9 +6,6 @@ app.use(express.json());
 
 const liveSessions = new Map();
 
-// -------------------------------------------------------------
-// DYNAMIC IMMERSIVE WEB APP SYSTEM (PITCH DASHBOARD)
-// -------------------------------------------------------------
 app.get('/pitch/:sessionId', (req, res) => {
   const session = liveSessions.get(req.params.sessionId);
   if (!session) return res.status(404).send('Lineup session expired or not found.');
@@ -72,7 +69,7 @@ app.get('/pitch/:sessionId', (req, res) => {
                 <span style="font-size:24px; color:#95a5a6;">⚪</span>
               </div>
               <div class="label-container">
-                <div class="pos-name" id="lbl_pos_\${idx}">\${player.posLabel}</div>
+                <div class="pos-name" id="lbl_pos_\text_pos_\${idx}">\${player.posLabel}</div>
                 <div class="usr-name" id="lbl_usr_\${idx}">Unassigned</div>
               </div>
             </div>
@@ -119,7 +116,6 @@ app.get('/pitch/:sessionId', (req, res) => {
           pickerModal = new bootstrap.Modal(document.getElementById('pickerModal'));
         });
 
-        // Touch and Mouse drag engine controller maps
         function startNodeDrag(e, idx) {
           if (e.target.closest('.label-container')) return;
           const node = document.getElementById('node_' + idx);
@@ -191,3 +187,11 @@ app.get('/pitch/:sessionId', (req, res) => {
   `);
 });
 
+app.post('/api/save-lineup/:id', async (req, res) => {
+  const session = liveSessions.get(req.params.id);
+  if (!session) return res.sendStatus(404);
+
+  session.roster = req.body.roster;
+
+  const summaryEmbed = new EmbedBuilder()
+    .setColor(0xf1c40f)
