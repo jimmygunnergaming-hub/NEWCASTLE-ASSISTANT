@@ -26,7 +26,8 @@ client.on('interactionCreate', async (interaction) => {
   // STRICT COACH AUTHORIZATION SECURITY CHECK
   if (interaction.isUserSelectMenu() || interaction.isButton()) {
     const customId = interaction.customId;
-    const msgId = customId.split('-').pop();
+    const parts = customId.split('-');
+    const msgId = parts[parts.length - 1];
     const session = activeSessions.get(msgId);
     
     if (session && session.creatorId !== interaction.user.id) {
@@ -65,8 +66,8 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    const direction = parts[0]; // FIXED: Restored clear horizontal extraction keys
-    const msgId = parts[1];     // FIXED: Restored clear session tracking keys
+    const direction = parts[0]; 
+    const msgId = parts[1];     
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -84,7 +85,8 @@ client.on('interactionCreate', async (interaction) => {
   // 3. PLAYER REPETITIVE SELECTION DROPDOWN HANDLER
   if (interaction.isUserSelectMenu() && interaction.customId.startsWith('pick-')) {
     const customId = interaction.customId;
-    const msgId = customId.split('-').pop();
+    const parts = customId.split('-');
+    const msgId = parts[parts.length - 1];
     const session = activeSessions.get(msgId);
     if (!session) return;
 
