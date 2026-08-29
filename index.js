@@ -1,6 +1,5 @@
 const express = require('express');
 const app = express();
-const http = require('http'); // Standard lightweight server helper
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 app.use(express.json());
@@ -55,7 +54,7 @@ app.get('/pitch/:sessionId', (req, res) => {
     </head>
     <body class="container-fluid py-3">
       <h3>⚽ NEWCASTLE ASSISTANT STRATEGY CONSOLE</h3>
-      <p class="text-muted">Format: <b class="text-white">${session.total}v${session.total}</b> | Drag circles anywhere. Click a circle to name its position and assign players!</p>
+      <p class="text-muted">Format: <b class="text-white">\${session.total}v\${session.total}</b> | Drag circles anywhere. Click a circle to name its position and assign players!</p>
       
       <div class="pitch-environment" id="pitch">
         <div class="midfield-line"></div>
@@ -63,21 +62,21 @@ app.get('/pitch/:sessionId', (req, res) => {
         <div class="penalty-box-top"></div>
         <div class="penalty-box-bot"></div>
         
-        ${session.roster.map((player, idx) => {
+        \${session.roster.map((player, idx) => {
           const pctY = 85 - (idx * (70 / Math.max(1, session.total - 1)));
           const pctX = 50 + (idx % 2 === 0 ? (idx * 3) : -(idx * 3));
-          return `
-            <div class="player-node" id="node_${idx}" style="left: ${pctX}%; top: ${pctY}%;" 
-                 mousedown="startNodeDrag(event, ${idx})" onclick="handleNodeClick(${idx})">
-              <div id="avatar_box_${idx}" class="w-100 h-100 d-flex align-items-center justify-content-center">
+          return \`
+            <div class="player-node" id="node_\${idx}" style="left: \${pctX}%; top: \${pctY}%;" 
+                 mousedown="startNodeDrag(event, \${idx})" onclick="handleNodeClick(\${idx})">
+              <div id="avatar_box_\${idx}" class="w-100 h-100 d-flex align-items-center justify-content-center">
                 <span style="font-size:24px; color:#95a5a6;">⚪</span>
               </div>
               <div class="label-container">
-                <div class="pos-name" id="lbl_pos_${idx}">${player.posLabel}</div>
-                <div class="usr-name" id="lbl_usr_${idx}">Unassigned</div>
+                <div class="pos-name" id="lbl_pos_\${idx}">\${player.posLabel}</div>
+                <div class="usr-name" id="lbl_usr_\${idx}">Unassigned</div>
               </div>
             </div>
-          `;
+          \`;
         }).join('')}
       </div>
 
@@ -111,7 +110,7 @@ app.get('/pitch/:sessionId', (req, res) => {
 
       <script src="https://jsdelivr.net"></script>
       <script>
-        const sessionData = ${JSON.stringify(session)};
+        const sessionData = \${JSON.stringify(session)};
         let activeEditIdx = null;
         let posModal, pickerModal;
 
@@ -120,6 +119,7 @@ app.get('/pitch/:sessionId', (req, res) => {
           pickerModal = new bootstrap.Modal(document.getElementById('pickerModal'));
         });
 
+        // Touch and Mouse drag engine controller maps
         function startNodeDrag(e, idx) {
           if (e.target.closest('.label-container')) return;
           const node = document.getElementById('node_' + idx);
