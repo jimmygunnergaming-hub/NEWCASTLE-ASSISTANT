@@ -46,8 +46,8 @@ client.on('interactionCreate', async (interaction) => {
       name: 'Unassigned',
       role: i === 0 ? 'GK' : `POS #${i + 1}`,
       avatar: '',
-      offsetX: 0, // Injected positional horizontal modifiers
-      offsetY: 0  // Injected positional vertical modifiers
+      offsetX: 0, 
+      offsetY: 0  
     }));
 
     activeSessions.set(msg.id, { 
@@ -65,8 +65,8 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    const direction = parts[0];
-    const msgId = parts[1];
+    const direction = parts[0]; // FIXED: Restored clear horizontal extraction keys
+    const msgId = parts[1];     // FIXED: Restored clear session tracking keys
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -208,7 +208,7 @@ async function generatePitch(interaction, msgId, isEdit) {
       .setPlaceholder(`👉 Select player for: ${session.currentIndex === 0 ? 'GK' : `POS #${session.currentIndex + 1}`}`)
   );
 
-  // Component Row 2: Direction move nudge adjustments pad (Injected directly inside native interface grid layers)
+  // Component Row 2: Direction move nudge adjustments pad
   const padRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`left-${msgId}`).setLabel('◀ Left').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`up-${msgId}`).setLabel('▲ Up').setStyle(ButtonStyle.Secondary),
