@@ -2,7 +2,7 @@ const http = require('http');
 const { createCanvas, loadImage } = require('canvas');
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
-// Lightweight port listener to satisfy Render's free tier rules
+// 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Newcastle Arena Active');
@@ -23,7 +23,7 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu() && !interaction.isUserSelectMenu()) return;
 
-  // Security authorization lock check
+  // SECURITY AUTHORIZATION CHECK
   if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
     const msgId = customId.split('-').pop();
@@ -33,7 +33,7 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  // 1. SLASH COMMAND INITIALIZATION
+  // INTERACTION FLOW 1: SLASH COMMAND INITIALIZATION
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
@@ -52,11 +52,11 @@ client.on('interactionCreate', async (interaction) => {
     return renderFieldGraphic(interaction, msg.id, false);
   }
 
-  // 2. TRIGGER POSITION SELECTION SYSTEM
+  // INTERACTION FLOW 2: SLOT BUTTON CLICKED -> SHOW POSITION MENU
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIX: Explicitly capture index 1 for slot ID
-    const msgId = parts[2];               // FIX: Explicitly capture index 2 for message ID
+    const targetIdx = parseInt(parts[1]); // FIX: Re-inserted correct array index for target index extraction
+    const msgId = parts[2];               // FIX: Re-inserted correct array index for message ID extraction
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -87,13 +87,13 @@ client.on('interactionCreate', async (interaction) => {
     });
   }
 
-  // 3. PARSE POSITION AND TRIGGER ROSTER CHOOSE LIST
+  // INTERACTION FLOW 3: POSITION CHOSEN -> SHOW USER MENU
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith('select-pos-')) {
     const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0]; // FIX: Extract primitive string from select array values
+    const chosenPos = interaction.values[0]; // FIX: Forced extraction of pure string element instead of array object
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -106,25 +106,26 @@ client.on('interactionCreate', async (interaction) => {
     });
   }
 
-  // 4. MAP USER SELECTION VALUE AND REPAINT FIELD GRAPHIC
+  // INTERACTION FLOW 4: USER CHOSEN -> REMAP AND REFRESH FIELD
   if (interaction.isUserSelectMenu() && interaction.customId.startsWith('assign-user-')) {
     const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
     const chosenUser = interaction.users.first();
-    if (!chosenUser) return interaction.reply({ content: '❌ Could not find selected user.', ephemeral: true });
+    if (!chosenUser) return interaction.reply({ content: '❌ User selection failed.', ephemeral: true });
 
     session.roster[session.activeSlotIdx].assignedUser = {
       name: chosenUser.username,
       avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 128 })
     };
 
-    await interaction.update({ content: '✅ Member mapped successfully. Regenerating your dashboard layout...', components: [] });
+    // FIX: Using interactive ephemeral message cycle mechanics cleanly without causing double rendering collisions
+    await interaction.update({ content: '✅ Player mapped successfully. Updating your visual editor...', components: [], files: [] });
     return renderFieldGraphic(interaction, msgId, true);
   }
 
-  // 5. FINALIZE AND PUBLICLY PUBLISH TEAM SHEET EMBED
+  // INTERACTION FLOW 5: LOCK & PUBLISH FINAL EMBED
   if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
     const msgId = interaction.customId.split('-').pop();
     const session = activeSessions.get(msgId);
@@ -164,7 +165,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// Helper function to render active editing interface
+// INTERACTIVE COMPONENT BUILDER MODULE
 async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   const session = activeSessions.get(msgId);
   if (!session) return;
@@ -212,26 +213,22 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   }
 }
 
+// GRAPHICS ENGINE MODULE (Canvas builder)
 async function buildCanvasBuffer(session) {
   const width = 800;
   const height = 1000;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
-  // Draw Field Background Stripes
+  // BACKGROUND
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#219653'; 
   for (let i = 0; i < height; i += 200) { ctx.fillRect(0, i, width, 100); }
 
-  // Draw Field Markings
+  // LINES
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, width - 80, height - 80);
   ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  // Grid Coordinate Distribution Matrix
-  const coords = [{ x: width / 2, y: height - 100 }]; // Index 0 is Goalkeeper
-  
-  if (session.total > 1) {
-    const outfieldCount = session.total - 1;
-    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
+  // FIELD POSITION COORDINATES MATRIX
