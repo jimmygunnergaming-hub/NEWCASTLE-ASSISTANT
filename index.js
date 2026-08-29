@@ -1,5 +1,5 @@
 const http = require('http'); 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage } = require('@napi-rs/canvas'); // FIXED: Swapped engine to @napi-rs/canvas
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
 // Lightweight port listener to satisfy Render's web traffic health check rules
@@ -196,7 +196,7 @@ async function generatePitch(interaction, msgId, isEdit) {
     ctx.fillText(slot.name, pos.x, pos.y + 85);
   }
 
-  const file = new AttachmentBuilder(canvas.toBuffer(), { name: 'pitch.png' });
+  const file = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'pitch.png' });
   
   const menuRow = new ActionRowBuilder().addComponents(
     new UserSelectMenuBuilder()
@@ -248,4 +248,3 @@ async function finishLineup(interaction, msgId) {
     let assignedCount = 0;
 
     for (let r = 0; r < rows; r++) {
-      const rowY = (height - 280) - (r * (height - 480) / rows);
