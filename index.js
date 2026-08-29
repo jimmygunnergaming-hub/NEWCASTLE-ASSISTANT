@@ -1,158 +1,211 @@
-const express = require('express');
-const app = express();
-const path = require('path');
-const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
-
-app.use(express.json({ limit: '50mb' }));
-
-const liveSessions = new Map();
-let mostRecentSessionId = null; 
-
-app.get('/pitch/:sessionId', (req, res) => {
-  res.sendFile(path.join(__dirname, 'pitch.html'));
-});
-
-app.get('/api/session/:sessionId', (req, res) => {
-  const session = liveSessions.get(req.params.sessionId);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json(session);
-});
-
-app.post('/api/save-lineup/:id', async (req, res) => {
-  const session = liveSessions.get(req.params.id);
-  if (!session) return res.sendStatus(404);
-
-  session.roster = req.body.roster;
-  const imageBlob = req.body.imageBlob;
-
-  const base64Data = imageBlob.replace(/^data:image\/png;base64,/, "");
-  const imageBuffer = Buffer.from(base64Data, 'base64');
-  const fileAttachment = new AttachmentBuilder(imageBuffer, { name: 'finalized-pitch-squad.png' });
-
-  const summaryEmbed = new EmbedBuilder()
-    .setColor(0x2ecc71)
-    .setTitle('📋 Newcastle Squad Lineup Finalized')
-    .setDescription('The customized tactical system build is complete. Here is the team sheet details:')
-    .setImage('attachment://finalized-pitch-squad.png');
-
-  session.roster.forEach((slot) => {
-    const userDisplay = slot.assignedUser 
-      ? '👤 **' + slot.assignedUser.name + '**\n[Profile Picture Avatar](' + slot.assignedUser.avatar + ')' 
-      : '*Unassigned Empty Slot*';
-    summaryEmbed.addFields({ name: '⚽ Position: ' + slot.posLabel, value: userDisplay, inline: true });
-  });
-
-  try {
-    const targetChannel = await client.channels.fetch('1542615988963385403');
-    await targetChannel.send({ 
-      content: '✅ **Lineup successfully published by <@' + session.creatorId + '>!**', 
-      embeds: [summaryEmbed],
-      files: [fileAttachment]
-    });
-  } catch (err) { console.error('Discord routing delivery mismatch event:', err); }
-
-  res.sendStatus(200);
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Web application validation listening on port ${port}`));
-
-// -------------------------------------------------------------
-// MAIN DISCORD BOT GATEWAY CONTROLLER
-// -------------------------------------------------------------
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
-
-client.once('ready', () => {
-  console.log('Bot connection validated successfully! Authorized as ' + client.user.tag);
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tactical Field Live Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://jsdelivr.net" rel="stylesheet">
+  <style>
+    body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 15px; user-select: none; }
+    .pitch-container-wrapper { width: 100%; max-width: 650px; margin: 0 auto; position: relative; }
+    .pitch-environment { 
+      position: relative; width: 100%; height: 85vh;
+      background: #27ae60;
+      background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
+      background-size: 100% 10%;
+      border: 4px solid #fff; border-radius: 8px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5); overflow: hidden;
+    }
+    .midfield-line { position: absolute; top: 50%; left: 0; width: 100%; height: 4px; background: #fff; }
+    .center-circle { position: absolute; top: 50%; left: 50%; width: 130px; height: 130px; border: 4px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+    .penalty-box-top { position: absolute; top: 0; left: 50%; width: 240px; height: 120px; border: 4px solid #fff; transform: translateX(-50%); border-top: none; }
+    .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 240px; height: 120px; border: 4px solid #fff; transform: translateX(-50%); border-bottom: none; }
+    
+    .player-node {
+      position: absolute; width: 75px; height: 75px; background: #7f8c8d;
+      border: 3px solid #fff; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transform: translate(-50%, -50%); z-index: 10; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    .drag-handle { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; }
+    .avatar-circle { font-size: 24px; color: #fff; pointer-events: none; }
+    .player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; pointer-events: none; }
+    
+    .label-container { position: absolute; bottom: -45px; width: 110px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; cursor: pointer; }
+    .pos-name { color: #f1c40f; text-transform: uppercase; pointer-events: none; } 
+    .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+    
+    .modal-content { background: #222; color: #fff; border: 2px solid #f1c40f; }
+    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; margin-bottom: 5px; }
+    .member-card:hover { background: #f1c40f; color: #000; transform: translateY(-2px); }
+  </style>
+  <script src="https://cloudflare.com"></script>
+</head>
+<body>
+  <h3>⚽ NEWCASTLE STRATEGY BOARD</h3>
+  <p class="text-muted">Drag circles to position them. Click the labels or center of the node to assign players and custom positions!</p>
   
-  const choicesArray = [];
-  for (let i = 1; i <= 11; i++) {
-    choicesArray.push({ name: i + 'v' + i + ' Matchup Size', value: i });
-  }
+  <div class="pitch-container-wrapper">
+    <div class="pitch-environment" id="pitch">
+      <div class="midfield-line"></div>
+      <div class="center-circle"></div>
+      <div class="penalty-box-top"></div>
+      <div class="penalty-box-bot"></div>
+      <div id="nodes-container"></div>
+    </div>
+  </div>
 
-  const baseCommand = new SlashCommandBuilder()
-    .setName('lineup')
-    .setDescription('Open the realistic interactive graphical football pitch setup workspace')
-    .addIntegerOption(option =>
-      option.setName('size')
-        .setDescription('Select squad player count size format (1 up to 11)')
-        .setRequired(true)
-        .addChoices(...choicesArray));
+  <div class="mt-3">
+    <button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
+  </div>
 
-  const editCommand = new SlashCommandBuilder()
-    .setName('edit')
-    .setDescription('Modify your most recently initialized team field project space properties');
+  <!-- Step 1: Position Name Form Popup -->
+  <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-secondary"><h5 class="modal-title">Set Position Name</h5></div>
+        <div class="modal-body text-start">
+          <label class="form-label text-muted">What position is this circle? (e.g. GK, CB, Striker, LW)</label>
+          <input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker">
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-warning w-100" onclick="submitPositionName()">Next: Choose Player ➡️</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  client.application.commands.create(baseCommand);
-  client.application.commands.create(editCommand);
-});
+  <!-- Step 2: Member Roster Card Panel -->
+  <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header border-secondary"><h5 class="modal-title">Select Team Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div class="row g-2" id="memberListContainer"></div></div>
+      </div>
+    </div>
+  </div>
 
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  <script src="https://jsdelivr.net"></script>
+  <script>
+    let sessionData = {};
+    let activeEditIdx = null;
+    let posModal, pickerModal;
 
-  if (interaction.commandName === 'lineup') {
-    const totalPlayers = interaction.options.getInteger('size');
-    const sessionId = Math.random().toString(36).substring(2, 11);
-    mostRecentSessionId = sessionId;
+    const sessionId = window.location.pathname.split('/').pop();
+    fetch('/api/session/' + sessionId)
+      .then(res => res.json())
+      .then(data => {
+        sessionData = data;
+        renderNodes();
+      });
 
-    const membersFetched = await interaction.guild.members.fetch();
-    const serverMembers = membersFetched.map(m => ({
-      name: m.user.username,
-      avatar: m.user.displayAvatarURL({ extension: 'png', size: 128 })
-    }));
-
-    liveSessions.set(sessionId, {
-      id: sessionId,
-      creatorId: interaction.user.id,
-      channelId: interaction.channelId,
-      total: totalPlayers,
-      serverMembers: serverMembers,
-      roster: Array.from({ length: totalPlayers }, (_, i) => ({ 
-        index: i, 
-        posLabel: i === 0 ? 'GK' : 'POS #' + (i + 1), 
-        assignedUser: null 
-      }))
+    document.addEventListener("DOMContentLoaded", () => {
+      posModal = new bootstrap.Modal(document.getElementById('positionModal'));
+      pickerModal = new bootstrap.Modal(document.getElementById('pickerModal'));
     });
 
-    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
-    const dashboardLink = appUrl + '/pitch/' + sessionId;
+    function renderNodes() {
+      const container = document.getElementById('nodes-container');
+      container.innerHTML = '';
+      sessionData.roster.forEach((player, idx) => {
+        const pctY = 80 - (idx * (65 / Math.max(1, sessionData.total - 1)));
+        const pctX = 50;
 
-    const linkRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('🏟️ Open Interactive Football Pitch').setURL(dashboardLink).setStyle(ButtonStyle.Link)
-    );
+        const node = document.createElement('div');
+        node.className = 'player-node';
+        node.id = 'node_' + idx;
+        node.style.left = pctX + '%';
+        node.style.top = pctY + '%';
 
-    // CHANGED TO EPHEMERAL: TRUE so only the command executor can see this message
-    await interaction.reply({
-      content: '👋 **Hey coach!** Click the button below to launch your tactical pitch dashboard for **' + totalPlayers + 'v' + totalPlayers + '** matches.',
-      components: [linkRow],
-      ephemeral: true
-    });
-  }
+        const handle = document.createElement('div');
+        handle.className = 'drag-handle';
+        handle.id = 'handle_' + idx;
+        handle.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>';
+        
+        handle.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
+        handle.addEventListener('click', (e) => {
+          if (!node.classList.contains('dragging')) {
+            handleNodeClick(idx);
+          }
+        });
 
-  if (interaction.commandName === 'edit') {
-    if (!mostRecentSessionId || !liveSessions.has(mostRecentSessionId)) {
-      return interaction.reply({ content: '❌ No active or recent layout records found to update.', ephemeral: true });
+        const labelContainer = document.createElement('div');
+        labelContainer.className = 'label-container';
+        labelContainer.innerHTML = '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>' +
+                                    '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>';
+        
+        labelContainer.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleNodeClick(idx);
+        });
+
+        node.appendChild(handle);
+        node.appendChild(labelContainer);
+        container.appendChild(node);
+      });
     }
 
-    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
-    const dashboardLink = appUrl + '/pitch/' + mostRecentSessionId;
+    function startNodeDrag(e, idx) {
+      const node = document.getElementById('node_' + idx);
+      const pitch = document.getElementById('pitch');
+      let moved = false;
+      
+      function onMouseMove(event) {
+        moved = true;
+        node.classList.add('dragging');
+        const rect = pitch.getBoundingClientRect();
+        let x = ((event.clientX - rect.left) / rect.width) * 100;
+        let y = ((event.clientY - rect.top) / rect.height) * 100;
+        if(x >= 5 && x <= 95) node.style.left = x + '%';
+        if(y >= 5 && y <= 95) node.style.top = y + '%';
+      }
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        setTimeout(() => node.classList.remove('dragging'), 50);
+      }, {once: true});
+    }
 
-    const linkRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('📝 Edit Most Recent Lineup Workspace').setURL(dashboardLink).setStyle(ButtonStyle.Link)
-    );
+    function handleNodeClick(idx) {
+      activeEditIdx = idx;
+      document.getElementById('posNameInput').value = sessionData.roster[idx].posLabel;
+      posModal.show();
+    }
 
-    // CHANGED TO EPHEMERAL: TRUE so only the command executor can see the edit button
-    await interaction.reply({
-      content: '🛠️ **Lineup modification session found.** Click the button below to resume editing where you left off:',
-      components: [linkRow],
-      ephemeral: true
-    });
-  }
-});
+    function submitPositionName() {
+      const inputVal = document.getElementById('posNameInput').value.trim();
+      const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
+      
+      sessionData.roster[activeEditIdx].posLabel = finalPosName;
+      document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
+      
+      posModal.hide();
+      openPlayerPicker();
+    }
 
-if (!process.env.DISCORD_TOKEN) {
-  console.error("❌ DEPLOYMENT FATAL ERROR: Missing DISCORD_TOKEN configuration variable.");
-  process.exit(1);
-} else {
-  client.login(process.env.DISCORD_TOKEN);
-}
+    function openPlayerPicker() {
+      const container = document.getElementById('memberListContainer');
+      container.innerHTML = '';
+      
+      sessionData.serverMembers.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'col-12 member-card d-flex align-items-center gap-3';
+        div.innerHTML = '<img src="' + m.avatar + '" style="width:40px; height:40px; border-radius:50%;" /><b>' + m.name + '</b>';
+        div.onclick = () => assignUser(m.name, m.avatar);
+        container.appendChild(div);
+      });
+      pickerModal.show();
+    }
+
+    function assignUser(name, avatar) {
+      pickerModal.hide();
+      const nodeEl = document.getElementById('node_' + activeEditIdx);
+      nodeEl.style.background = '#2c3e50';
+      
+      document.getElementById('avatar_box_' + activeEditIdx).innerHTML = '<img src="' + avatar + '" style="width:100%; height:100%; border-radius:50%;" />';
+      document.getElementById('lbl_usr_' + activeEditIdx).innerText = name;
+      sessionData.roster[activeEditIdx].assignedUser = { name: name, avatar: avatar };
+    }
+
+    function saveAndPostToDiscord() {
+      const pitchElement = document.getElementById('pitch');
