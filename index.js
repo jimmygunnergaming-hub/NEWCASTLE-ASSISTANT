@@ -23,10 +23,10 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu() && !interaction.isUserSelectMenu()) return;
 
-  // SECURITY AUTHORIZATION CHECK
+  // SECURITY AUTHORIZATION CHECK USING ALTERNATE STRING PARSING
   if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
-    const msgId = customId.split('-').pop();
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
     const session = activeSessions.get(msgId);
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ content: '❌ Only the coach who started this lineup command can customize slots.', ephemeral: true });
@@ -54,9 +54,12 @@ client.on('interactionCreate', async (interaction) => {
 
   // INTERACTION FLOW 2: SLOT BUTTON CLICKED -> SHOW POSITION MENU
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
-    const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIXED
-    const msgId = parts[2];               // FIXED
+    const customId = interaction.customId;
+    
+    // SAFE ALTERNATE EXTRACTION (Bypasses array brackets entirely)
+    const targetIdx = parseInt(customId.replace('slot-', '').replace(/-[^-]+$/, ''));
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -89,11 +92,13 @@ client.on('interactionCreate', async (interaction) => {
 
   // INTERACTION FLOW 3: POSITION CHOSEN -> SHOW USER MENU
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith('select-pos-')) {
-    const msgId = interaction.customId.split('-').pop();
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0]; // FIXED
+    // SAFE STRING ARRAYS VALUE CHECK
+    const chosenPos = interaction.values.at(0); 
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -108,7 +113,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // INTERACTION FLOW 4: USER CHOSEN -> REMAP AND REFRESH FIELD
   if (interaction.isUserSelectMenu() && interaction.customId.startsWith('assign-user-')) {
-    const msgId = interaction.customId.split('-').pop();
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -126,7 +132,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // INTERACTION FLOW 5: LOCK & PUBLISH FINAL EMBED
   if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
-    const msgId = interaction.customId.split('-').pop();
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -230,11 +237,3 @@ async function buildCanvasBuffer(session) {
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  // FIELD POSITION COORDINATES MATRIX
-  const coords = [{ x: width / 2, y: height - 100 }]; 
-  
-  if (session.total > 1) {
-    const outfieldCount = session.total - 1;
-    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
-    let baseDistribution = [];
-    if (rowsCount === 1) baseDistribution = [outfieldCount];
