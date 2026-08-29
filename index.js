@@ -55,8 +55,8 @@ client.on('interactionCreate', async (interaction) => {
   // 2. TRIGGER POSITION SELECTION SYSTEM
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIX: Added explicit index mapping back from the raw split payload array
-    const msgId = parts[2];               // FIX: Added explicit index mapping back from the raw split payload array
+    const targetIdx = parseInt(parts[1]); // FIX: Explicitly capture index 1 for slot ID
+    const msgId = parts[2];               // FIX: Explicitly capture index 2 for message ID
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -93,7 +93,7 @@ client.on('interactionCreate', async (interaction) => {
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0]; // FIX: Assigned specifically as a single string item value, rather than raw text collection array
+    const chosenPos = interaction.values[0]; // FIX: Extract primitive string from select array values
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -113,6 +113,8 @@ client.on('interactionCreate', async (interaction) => {
     if (!session) return;
 
     const chosenUser = interaction.users.first();
+    if (!chosenUser) return interaction.reply({ content: '❌ Could not find selected user.', ephemeral: true });
+
     session.roster[session.activeSlotIdx].assignedUser = {
       name: chosenUser.username,
       avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 128 })
@@ -133,7 +135,6 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: '⚠️ You must fill out every position node slot before publishing.', ephemeral: true });
     }
 
-    // Acknowledge the interaction to prevent Discord timeouts while canvas processes
     await interaction.deferUpdate();
 
     const finalBuffer = await buildCanvasBuffer(session);
@@ -233,3 +234,4 @@ async function buildCanvasBuffer(session) {
   
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
+    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
