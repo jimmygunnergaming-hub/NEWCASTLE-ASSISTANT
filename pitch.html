@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://jsdelivr.net" rel="stylesheet">
   <style>
-    body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 15px; }
+    body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 15px; user-select: none; }
     .pitch-container-wrapper { width: 100%; max-width: 650px; margin: 0 auto; position: relative; }
     .pitch-environment { 
       position: relative; width: 100%; height: 85vh;
@@ -21,27 +21,28 @@
     .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 240px; height: 120px; border: 4px solid #fff; transform: translateX(-50%); border-bottom: none; }
     
     .player-node {
-      position: absolute; width: 65px; height: 65px; background: #7f8c8d;
-      border: 3px solid #fff; border-radius: 50%; cursor: move;
+      position: absolute; width: 75px; height: 75px; background: #7f8c8d;
+      border: 3px solid #fff; border-radius: 50%;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       transform: translate(-50%, -50%); z-index: 10; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
     }
-    .avatar-circle { font-size: 20px; color: #fff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    .player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-    .label-container { position: absolute; bottom: -45px; width: 110px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; }
-    .pos-name { color: #f1c40f; text-transform: uppercase; } 
-    .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .drag-handle { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; }
+    .avatar-circle { font-size: 24px; color: #fff; pointer-events: none; }
+    .player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; pointer-events: none; }
+    
+    .label-container { position: absolute; bottom: -45px; width: 110px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; cursor: pointer; }
+    .pos-name { color: #f1c40f; text-transform: uppercase; pointer-events: none; } 
+    .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
     
     .modal-content { background: #222; color: #fff; border: 2px solid #f1c40f; }
-    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; margin-bottom: 5px; }
     .member-card:hover { background: #f1c40f; color: #000; transform: translateY(-2px); }
   </style>
-  <!-- Load HTML to Image library to convert the web element into an image file -->
   <script src="https://cloudflare.com"></script>
 </head>
 <body>
   <h3>⚽ NEWCASTLE STRATEGY BOARD</h3>
-  <p class="text-muted">Drag circles anywhere to position them. Click a circle to name its position and assign players!</p>
+  <p class="text-muted">Drag circles to position them. Click the labels or center of the node to assign players and custom positions!</p>
   
   <div class="pitch-container-wrapper">
     <div class="pitch-environment" id="pitch">
@@ -114,25 +115,46 @@
         node.id = 'node_' + idx;
         node.style.left = pctX + '%';
         node.style.top = pctY + '%';
-        
-        node.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
-        node.addEventListener('click', () => handleNodeClick(idx));
 
-        node.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>' +
-          '<div class="label-container">' +
-            '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>' +
-            '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>' +
-          '</div>';
+        // Separate drag container handle from click selection zones
+        const handle = document.createElement('div');
+        handle.className = 'drag-handle';
+        handle.id = 'handle_' + idx;
+        handle.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>';
+        
+        handle.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
+        // Single tap trigger behavior logic
+        handle.addEventListener('click', (e) => {
+          if (!node.classList.contains('dragging')) {
+            handleNodeClick(idx);
+          }
+        });
+
+        const labelContainer = document.createElement('div');
+        labelContainer.className = 'label-container';
+        labelContainer.innerHTML = '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>' +
+                                    '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>';
+        
+        labelContainer.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleNodeClick(idx);
+        });
+
+        node.appendChild(handle);
+        node.appendChild(labelContainer);
         container.appendChild(node);
       });
     }
 
     function startNodeDrag(e, idx) {
-      if (e.target.closest('.label-container')) return;
       const node = document.getElementById('node_' + idx);
       const pitch = document.getElementById('pitch');
+      node.classList.remove('dragging');
       
+      let moved = false;
       function onMouseMove(event) {
+        moved = true;
+        node.classList.add('dragging');
         const rect = pitch.getBoundingClientRect();
         let x = ((event.clientX - rect.left) / rect.width) * 100;
         let y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -141,7 +163,10 @@
       }
       
       document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMouseMove), {once: true});
+      document.addEventListener('mouseup', () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        setTimeout(() => node.classList.remove('dragging'), 50);
+      }, {once: true});
     }
 
     function handleNodeClick(idx) {
@@ -167,7 +192,7 @@
       
       sessionData.serverMembers.forEach(m => {
         const div = document.createElement('div');
-        div.className = 'col-12 member-card p-2 d-flex align-items-center gap-3';
+        div.className = 'col-12 member-card d-flex align-items-center gap-3';
         div.innerHTML = '<img src="' + m.avatar + '" style="width:40px; height:40px; border-radius:50%;" /><b>' + m.name + '</b>';
         div.onclick = () => assignUser(m.name, m.avatar);
         container.appendChild(div);
@@ -180,30 +205,5 @@
       const nodeEl = document.getElementById('node_' + activeEditIdx);
       nodeEl.style.background = '#2c3e50';
       
-      document.getElementById('avatar_box_' + activeEditIdx).innerHTML = '<img src="' + avatar + '" />';
+      document.getElementById('avatar_box_' + activeEditIdx).innerHTML = '<img src="' + avatar + '" style="width:100%; height:100%; border-radius:50%;" />';
       document.getElementById('lbl_usr_' + activeEditIdx).innerText = name;
-      sessionData.roster[activeEditIdx].assignedUser = { name: name, avatar: avatar };
-    }
-
-    function saveAndPostToDiscord() {
-      const pitchElement = document.getElementById('pitch');
-      
-      // Render the web visual into a high-res image image layer blob layout 
-      htmlToImage.toPng(pitchElement, { cacheBust: true })
-        .then(function (dataUrl) {
-          fetch('/api/save-lineup/' + sessionData.id, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              roster: sessionData.roster,
-              imageBlob: dataUrl
-            })
-          }).then(() => alert('Lineup image pushed successfully to your targeted team channel logs!'));
-        })
-        .catch(function (error) {
-          console.error('Snapshot render capture operation error:', error);
-        });
-    }
-  </script>
-</body>
-</html>
