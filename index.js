@@ -12,7 +12,7 @@ const {
   EmbedBuilder 
 } = require('discord.js');
 
-// Lightweight port listener to satisfy Render's web hosting environment rules
+// Standard port listener to satisfy Render's hosting rules
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Newcastle Canvas Engine Active');
@@ -27,13 +27,12 @@ const activeSessions = new Map();
 client.once('ready', () => {
   console.log(`Bot connection validated successfully! Authorized as ${client.user.tag}`);
 
-  // Stripped out the broken loop choices to prevent the unexpected end of input syntax error
   const baseCommand = new SlashCommandBuilder()
     .setName('lineup')
     .setDescription('Build a graphical football field lineup layout directly in chat')
     .addIntegerOption(option => 
       option.setName('size')
-        .setDescription('Number of people on the team (Enter any number from 1 to 11)')
+        .setDescription('Number of people on the team (Enter 1-11)')
         .setRequired(true)
         .setMinValue(1)
         .setMaxValue(11));
@@ -42,6 +41,8 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand() && !interaction.isUserSelectMenu() && !interaction.isButton()) return;
+
   if (interaction.isButton() || interaction.isUserSelectMenu()) {
     const session = activeSessions.get(interaction.message.id);
     if (session && session.creatorId !== interaction.user.id) {
@@ -281,3 +282,4 @@ async function publishFinalLineup(interaction, msgId) {
     await targetChannel.send({ 
       content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
       embeds: [destinationEmbed],
+      files: [finalAttachment] 
