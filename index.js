@@ -55,8 +55,8 @@ client.on('interactionCreate', async (interaction) => {
   // INTERACTION FLOW 2: SLOT BUTTON CLICKED -> SHOW POSITION MENU
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIX: Restored array index 1
-    const msgId = parts[2];               // FIX: Restored array index 2
+    const targetIdx = parseInt(parts[1]); // FIXED
+    const msgId = parts[2];               // FIXED
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -93,7 +93,7 @@ client.on('interactionCreate', async (interaction) => {
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0]; // FIX: Restored array index 0
+    const chosenPos = interaction.values[0]; // FIXED
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -237,3 +237,4 @@ async function buildCanvasBuffer(session) {
     const outfieldCount = session.total - 1;
     let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
     let baseDistribution = [];
+    if (rowsCount === 1) baseDistribution = [outfieldCount];
