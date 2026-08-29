@@ -3,11 +3,9 @@ const app = express();
 const path = require('path');
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 
-// Increase JSON limit to handle base64 visual upload blobs
 app.use(express.json({ limit: '50mb' }));
 
 const liveSessions = new Map();
-// Global track variable to instantly restore your most recent active team profile session link
 let mostRecentSessionId = null; 
 
 app.get('/pitch/:sessionId', (req, res) => {
@@ -20,7 +18,6 @@ app.get('/api/session/:sessionId', (req, res) => {
   res.json(session);
 });
 
-// Endpoint to process submitted lineup configurations back to Discord channel embed
 app.post('/api/save-lineup/:id', async (req, res) => {
   const session = liveSessions.get(req.params.id);
   if (!session) return res.sendStatus(404);
@@ -28,7 +25,6 @@ app.post('/api/save-lineup/:id', async (req, res) => {
   session.roster = req.body.roster;
   const imageBlob = req.body.imageBlob;
 
-  // Extract base64 image data payload details safely into standard system buffers
   const base64Data = imageBlob.replace(/^data:image\/png;base64,/, "");
   const imageBuffer = Buffer.from(base64Data, 'base64');
   const fileAttachment = new AttachmentBuilder(imageBuffer, { name: 'finalized-pitch-squad.png' });
@@ -47,7 +43,6 @@ app.post('/api/save-lineup/:id', async (req, res) => {
   });
 
   try {
-    // Hardcoded destination channel target path link requested by user context parameters
     const targetChannel = await client.channels.fetch('1542615988963385403');
     await targetChannel.send({ 
       content: '✅ **Lineup successfully published by <@' + session.creatorId + '>!**', 
@@ -70,7 +65,6 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 client.once('ready', () => {
   console.log('Bot connection validated successfully! Authorized as ' + client.user.tag);
   
-  // Register full 1v1 up to 11v11 choices
   const choicesArray = [];
   for (let i = 1; i <= 11; i++) {
     choicesArray.push({ name: i + 'v' + i + ' Matchup Size', value: i });
@@ -99,7 +93,7 @@ client.on('interactionCreate', async interaction => {
   if (interaction.commandName === 'lineup') {
     const totalPlayers = interaction.options.getInteger('size');
     const sessionId = Math.random().toString(36).substring(2, 11);
-    mostRecentSessionId = sessionId; // Update history anchor link
+    mostRecentSessionId = sessionId;
 
     const membersFetched = await interaction.guild.members.fetch();
     const serverMembers = membersFetched.map(m => ({
@@ -127,9 +121,11 @@ client.on('interactionCreate', async interaction => {
       new ButtonBuilder().setLabel('🏟️ Open Interactive Football Pitch').setURL(dashboardLink).setStyle(ButtonStyle.Link)
     );
 
+    // CHANGED TO EPHEMERAL: TRUE so only the command executor can see this message
     await interaction.reply({
       content: '👋 **Hey coach!** Click the button below to launch your tactical pitch dashboard for **' + totalPlayers + 'v' + totalPlayers + '** matches.',
-      components: [linkRow]
+      components: [linkRow],
+      ephemeral: true
     });
   }
 
@@ -145,9 +141,11 @@ client.on('interactionCreate', async interaction => {
       new ButtonBuilder().setLabel('📝 Edit Most Recent Lineup Workspace').setURL(dashboardLink).setStyle(ButtonStyle.Link)
     );
 
+    // CHANGED TO EPHEMERAL: TRUE so only the command executor can see the edit button
     await interaction.reply({
       content: '🛠️ **Lineup modification session found.** Click the button below to resume editing where you left off:',
-      components: [linkRow]
+      components: [linkRow],
+      ephemeral: true
     });
   }
 });
