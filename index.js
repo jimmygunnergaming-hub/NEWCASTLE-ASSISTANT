@@ -111,8 +111,8 @@ client.on('interactionCreate', async interaction => {
       }))
     });
 
-    // HARDCODED YOUR LIVE LINK TO FORCELOAD STABLE PORTS
-    const appUrl = 'https://onrender.com';
+    // AUTOMATIC URL DETECTION ENGINE (Fixes the render.com redirect loophole)
+    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
     const dashboardLink = appUrl + '/pitch/' + sessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
@@ -131,7 +131,7 @@ client.on('interactionCreate', async interaction => {
       return interaction.reply({ content: '❌ No active or recent layout records found to update.', ephemeral: true });
     }
 
-    const appUrl = 'https://onrender.com';
+    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
     const dashboardLink = appUrl + '/pitch/' + mostRecentSessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
