@@ -1,3 +1,4 @@
+const http = require('http'); // Built-in lightweight port handler
 const { 
   Client, 
   GatewayIntentBits, 
@@ -8,6 +9,19 @@ const {
   EmbedBuilder 
 } = require('discord.js');
 
+// -------------------------------------------------------------
+// LIGHTWEIGHT PORT LISTENER TO KEEP RENDER FREE
+// -------------------------------------------------------------
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Newcastle Lineup Engine Active');
+}).listen(process.env.PORT || 3000, () => {
+  console.log("Render web port validation check passed successfully.");
+});
+
+// -------------------------------------------------------------
+// BOT LOGIC
+// -------------------------------------------------------------
 const client = new Client({ 
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] 
 });
@@ -17,7 +31,6 @@ const activeLineups = new Map();
 client.once('ready', () => {
   console.log(`Bot connection validated successfully! Authorized as ${client.user.tag}`);
 
-  // Generates choice formats dynamically from 1v1 up to 11v11
   const formatChoices = [];
   for (let i = 1; i <= 11; i++) {
     formatChoices.push({ name: `${i}v${i} Layout`, value: i.toString() });
@@ -36,7 +49,6 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  // SECURITY LOCK CONTROLLER: Blocks random users from clicking the coach's session menus
   if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
     const session = activeLineups.get(interaction.message.id);
     if (session && session.creatorId !== interaction.user.id) {
@@ -47,11 +59,9 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // 1. CHAT COMMAND INVOCATION
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const totalPlayers = parseInt(interaction.options.getString('format'));
     
-    // Provide target strategy suggestions based on size inputs
     let formationOptions = [];
     if (totalPlayers === 6) {
       formationOptions = [{ label: '2-2-2 Strategic Grid Layout', value: '2-2-2' }];
@@ -77,7 +87,6 @@ client.on('interactionCreate', async interaction => {
       fetchReply: true
     });
 
-    // Save empty session tracking map metadata values
     activeLineups.set(msg.id, {
       creatorId: interaction.user.id,
       total: totalPlayers,
@@ -89,22 +98,19 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  // 2. TACTICAL SYSTEM SELECT PARSER
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith('form_')) {
     const msgId = interaction.message.id;
     const session = activeLineups.get(msgId);
     if (!session) return;
 
-    const totalPlayers = parseInt(interaction.customId.split('_')[1]);
+    const totalPlayers = parseInt(interaction.customId.split('_'));
     session.formation = interaction.values[0];
 
-    // Map customized football position labels into arrays matching specific choices
     if (totalPlayers === 6 && session.formation === '2-2-2') {
       session.labels = ['GK (Goalkeeper)', 'DEF-L (Left Defender)', 'DEF-R (Right Defender)', 'MID-L (Left Midfielder)', 'MID-R (Right Midfielder)', 'ST (Striker)'];
     } else if (totalPlayers === 11 && session.formation === '4-4-2') {
       session.labels = ['GK', 'LB', 'CB1', 'CB2', 'RB', 'LM', 'CM1', 'CM2', 'RM', 'ST1', 'ST2'];
     } else {
-      // General numeric position generation fallback block
       for (let i = 1; i <= totalPlayers; i++) {
         session.labels.push(i === 1 ? 'GK (Goalkeeper)' : `Player Node #${i}`);
       }
@@ -113,7 +119,6 @@ client.on('interactionCreate', async interaction => {
     return advanceLineupProcess(interaction, msgId);
   }
 
-  // 3. STEPPER SELECTION POOL CONTROLLER
   if (interaction.isUserSelectMenu() && interaction.customId === 'player_picker') {
     const msgId = interaction.message.id;
     const session = activeLineups.get(msgId);
@@ -122,7 +127,6 @@ client.on('interactionCreate', async interaction => {
     const targetUser = interaction.users.first();
     const currentPosLabel = session.labels[session.currentIndex];
 
-    // Map selected member profile assets to database index tracking positions
     session.roster.push({
       name: targetUser.username,
       position: currentPosLabel,
@@ -131,12 +135,11 @@ client.on('interactionCreate', async interaction => {
 
     session.currentIndex++;
 
-    // Check if configuration loops match requested count total limits
     if (session.currentIndex >= session.total) {
       const finalEmbed = new EmbedBuilder()
         .setColor(0x2ecc71)
         .setTitle(`📋 Newcastle Squad Roster Confirmed (${session.total}v${session.total})`)
-        .setDescription(`**Tactical System Setup Strategy:** \`${session.formation}\`\nFinal starting roster breakdown list displayed directly below:`);
+        .setDescription(`**Tactical System Strategy:** \`${session.formation}\`\nFinal starting roster breakdown list displayed directly below:`);
 
       session.roster.forEach(player => {
         finalEmbed.addFields({ 
@@ -159,7 +162,6 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Dynamic menu status tracking builder function
 async function advanceLineupProcess(interaction, msgId) {
   const session = activeLineups.get(msgId);
   const currentPosLabel = session.labels[session.currentIndex];
