@@ -33,11 +33,10 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  // 1. SLASH COMMAND INITIALIZATION (Set to completely hidden from everyone else)
+  // 1. SLASH COMMAND INITIALIZATION (Hidden from other server members)
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
-    // Defer choice panel ephemerally to prevent anyone else from seeing the build process
     await interaction.deferReply({ ephemeral: true });
     const msg = await interaction.fetchReply();
     
@@ -119,20 +118,19 @@ client.on('interactionCreate', async (interaction) => {
       avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 128 })
     };
 
-    await interaction.update({ content: '✅ Member mapped into field node coordinate spaces successfully.', components: [] });
+    await interaction.update({ content: '✅ Member mapped successfully.', components: [] });
     return renderFieldGraphic(interaction, msgId, true);
   }
 
-  // 5. FINALIZE AND PUBLICLY PUBLISH TEAM SHEET EMBED FOR EVERYONE TO SEE
+  // 5. FINALIZE AND PUBLICLY PUBLISH TEAM SHEET EMBED
   if (interaction.isButton() && interaction.customId.startsWith('confirm_')) {
     const msgId = interaction.customId.split('_').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    // Verify all spots are taken before publishing
     const incomplete = session.roster.some(slot => !slot.assignedUser);
     if (incomplete) {
-      return interaction.reply({ content: '⚠️ You must fill out every position node slot before publishing the final team sheet.', ephemeral: true });
+      return interaction.reply({ content: '⚠️ You must fill out every position node slot before publishing.', ephemeral: true });
     }
 
     const finalBuffer = await buildCanvasBuffer(session);
@@ -145,7 +143,7 @@ client.on('interactionCreate', async (interaction) => {
       .setImage('attachment://finalized-team-roster.png');
 
     session.roster.forEach((slot) => {
-      summaryEmbed.addFields({ name: `Position: ${slot.posLabel}`, value: `👤 **${slot.assignedUser.name}**`, inline: true });
+      destinationEmbed.addFields({ name: `Position: ${slot.posLabel}`, value: `👤 **${slot.assignedUser.name}**`, inline: true });
     });
 
     try {
@@ -162,9 +160,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// -------------------------------------------------------------
-// CORE IMAGE GENERATION & COMPILER ENGINE
-// -------------------------------------------------------------
 async function buildCanvasBuffer(session) {
   const width = 800;
   const height = 1000;
@@ -222,3 +217,13 @@ async function buildCanvasBuffer(session) {
 }
 
 async function renderFieldGraphic(interaction, msgId, isEdit) {
+  const session = activeSessions.get(msgId);
+  const buffer = await buildCanvasBuffer(session);
+  const fileAttachment = new AttachmentBuilder(buffer, { name: 'pitch.png' });
+
+  const row1 = new ActionRowBuilder();
+  const row2 = new ActionRowBuilder();
+  const finishRow = new ActionRowBuilder();
+
+  session.roster.forEach((slot, index) => {
+    const btn = new ButtonBuilder()
