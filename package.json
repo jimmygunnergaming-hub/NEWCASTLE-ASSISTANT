@@ -6,7 +6,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.53",
+    "skia-canvas": "^1.0.1",
     "discord.js": "^14.14.1"
   }
 }
