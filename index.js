@@ -1,108 +1,46 @@
-const express = require('express');
-const fs = require('fs'); // FIXED: Explicitly added native filesystem package
-const path = require('path');
+const http = require('http'); 
 const { createCanvas, loadImage } = require('canvas');
-const { Client, GatewayIntentBits, SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
-const app = express();
-app.use(express.json());
+// 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Newcastle Arena Active');
+}).listen(process.env.PORT || 3000);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 const activeSessions = new Map();
 
-// 1. LIVE WEB APP ROUTING ENDPOINTS
-app.get('/lineup/:id', (req, res) => {
-  const filePath = path.join(__dirname, 'pitch.html');
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send('❌ Error: pitch.html was not found in your main repository folder directory.');
-  }
-  res.sendFile(filePath);
-});
-
-app.get('/api/session/:id', (req, res) => {
-  const session = activeSessions.get(req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json({
-    id: session.id,
-    creatorId: session.creatorId,
-    total: session.total,
-    roster: session.roster,
-    serverMembers: session.serverMembers
-  });
-});
-
-app.post('/api/session/:id/save', async (req, res) => {
-  const { id } = req.params;
-  const session = activeSessions.get(id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
-
-  session.roster = req.body.roster;
-
-  try {
-    const finalBuffer = await buildCanvasBuffer(session);
-    const finalAttachment = new AttachmentBuilder(finalBuffer, { name: 'finalized-squad-lineup.png' });
-
-    const destinationEmbed = new EmbedBuilder()
-      .setColor(0x2ecc71)
-      .setTitle(`📋 Squad Lineup Finalized (${session.total}v${session.total})`)
-      .setDescription('Tactical field chart compiled cleanly using the live workspace console application.')
-      .setImage('attachment://finalized-squad-lineup.png');
-
-    session.roster.forEach((slot) => {
-      if (slot.name && slot.name !== 'Unassigned') {
-        destinationEmbed.addFields({ name: `Position: ${slot.role}`, value: `👤 **${slot.name}**`, inline: true });
-      }
-    });
-
-    const targetChannel = await client.channels.fetch('1542615988963385403');
-    await targetChannel.send({ 
-      content: `✅ **New squad sheet locked and published by manager <@${session.creatorId}>!**`, 
-      embeds: [destinationEmbed],
-      files: [finalAttachment] 
-    });
-
-    activeSessions.delete(id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Graphics build or delivery failure:', err);
-    res.status(500).json({ error: 'Failed to process chart layout.' });
-  }
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log('Live web manager control server actively listening...');
-});
-
-// 2. DISCORD INTERACTION ROUTING LAYER
 client.once('ready', () => {
-  console.log('Newcastle Bot connection validated successfully!');
+  console.log('Bot connection validated successfully!');
   const command = new SlashCommandBuilder()
     .setName('lineup')
-    .setDescription('Build a high-quality graphical football field lineup')
+    .setDescription('Build a custom graphical football field lineup layout')
     .addIntegerOption(opt => opt.setName('size').setDescription('Number of players (1-11)').setRequired(true).setMinValue(1).setMaxValue(11));
   client.application.commands.create(command);
 });
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isUserSelectMenu()) return;
 
-  if (interaction.commandName === 'lineup') {
+  // SECURITY AUTHORIZATION GATE
+  if (interaction.isButton() || interaction.isUserSelectMenu()) {
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const session = activeSessions.get(msgId);
+    if (session && session.creatorId !== interaction.user.id) {
+      return interaction.reply({ content: '❌ Only the coach who started this lineup command can modify nodes.', ephemeral: true });
+    }
+  }
+
+  // FLOW 1: SLASH COMMAND INITIALIZATION
+  if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
+    
     await interaction.deferReply({ ephemeral: true });
     const msg = await interaction.fetchReply();
-
-    let membersList = [];
-    try {
-      const fetched = await interaction.guild.members.fetch({ limit: 100 });
-      membersList = fetched.map(m => ({
-        id: m.user.id,
-        username: m.user.username,
-        avatar: m.user.displayAvatarURL({ extension: 'png', size: 128 })
-      }));
-    } catch (e) {
-      console.error('Failed to extract live server guild member profiles:', e);
-    }
-
+    
+    // Distribute base starter nodes down the pitch grid layout
     const roster = Array.from({ length: size }, (_, i) => ({
       index: i,
       name: 'Unassigned',
@@ -112,75 +50,182 @@ client.on('interactionCreate', async (interaction) => {
       pctY: 85 - (i * 7)
     }));
 
-    activeSessions.set(msg.id, {
+    activeSessions.set(msg.id, { 
       id: msg.id,
-      creatorId: interaction.user.id,
-      total: size,
-      roster: roster,
-      serverMembers: membersList
+      creatorId: interaction.user.id, 
+      channelId: interaction.channelId,
+      total: size, 
+      activeSlotIdx: 0,
+      roster: roster
+    });
+    
+    return renderFieldGraphic(interaction, msg.id, false);
+  }
+
+  // FLOW 2: NUDGE BUTTON CLICKED (Up, Down, Left, Right movement controls)
+  if (interaction.isButton() && (interaction.customId.startsWith('up-') || interaction.customId.startsWith('down-') || interaction.customId.startsWith('left-') || interaction.customId.startsWith('right-'))) {
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const session = activeSessions.get(msgId);
+    if (!session) return;
+
+    // Parse button instruction configurations safely
+    const commandType = customId.split('-')[0];
+    const targetIdx = parseInt(customId.split('-')[1]);
+
+    let deltaX = 0;
+    let deltaY = 0;
+    if (commandType === 'up') deltaY = -5;
+    if (commandType === 'down') deltaY = 5;
+    if (commandType === 'left') deltaX = -6;
+    if (commandType === 'right') deltaX = 6;
+
+    let x = session.roster[targetIdx].pctX + deltaX;
+    let y = session.roster[targetIdx].pctY + deltaY;
+
+    // Constrain position updates safely inside the field margins
+    session.roster[targetIdx].pctX = Math.max(5, Math.min(95, x));
+    session.roster[targetIdx].pctY = Math.max(3, Math.min(96, y));
+
+    await interaction.deferUpdate();
+    return renderFieldGraphic(interaction, msgId, false);
+  }
+
+  // FLOW 3: SELECTION DROPDOWN SLOT CHOSEN
+  if (interaction.isUserSelectMenu() && interaction.customId.startsWith('pick-')) {
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const session = activeSessions.get(msgId);
+    if (!session) return;
+
+    const chosenUser = interaction.users.first();
+    if (!chosenUser) return interaction.reply({ content: '❌ Player selection extraction failed.', ephemeral: true });
+
+    // Update active user properties inside data session memory maps
+    session.roster[session.activeSlotIdx].name = chosenUser.username;
+    session.roster[session.activeSlotIdx].avatar = chosenUser.displayAvatarURL({ extension: 'png', size: 128 });
+
+    // Step current position index forward linearly or wrap around
+    session.activeSlotIdx = (session.activeSlotIdx + 1) % session.total;
+
+    await interaction.deferUpdate();
+    return renderFieldGraphic(interaction, msgId, false);
+  }
+
+  // FLOW 4: ACTIVE TARGET NODE ROTATION CLICKED
+  if (interaction.isButton() && interaction.customId.startsWith('target-')) {
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const session = activeSessions.get(msgId);
+    if (!session) return;
+
+    session.activeSlotIdx = parseInt(customId.split('-')[1]);
+
+    await interaction.deferUpdate();
+    return renderFieldGraphic(interaction, msgId, false);
+  }
+
+  // FLOW 5: LOCK & PUBLICLY PUBLISH TEAM SHEET EMBED
+  if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
+    const customId = interaction.customId;
+    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const session = activeSessions.get(msgId);
+    if (!session) return;
+
+    await interaction.deferUpdate();
+
+    const finalBuffer = await buildCanvasBuffer(session);
+    const finalAttachment = new AttachmentBuilder(finalBuffer, { name: 'finalized-team-roster.png' });
+
+    const destinationEmbed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle(`📋 Squad Lineup Finalized (${session.total}v${session.total})`)
+      .setDescription('The customized tactical system build is complete. Final roster sheet details displayed below:')
+      .setImage('attachment://finalized-team-roster.png');
+
+    session.roster.forEach((slot) => {
+      if (slot.name !== 'Unassigned') {
+        destinationEmbed.addFields({ name: `Position: ${slot.role}`, value: `👤 **${slot.name}**`, inline: true });
+      }
     });
 
-    const externalHost = process.env.RENDER_EXTERNAL_HOSTNAME || `localhost:${process.env.PORT || 3000}`;
-    const secureProtocol = process.env.RENDER_EXTERNAL_HOSTNAME ? 'https' : 'http';
-    
-    const webLink = `${secureProtocol}://${externalHost}/lineup/${msg.id}?uid=${interaction.user.id}`;
-    
-    return interaction.editReply({
-      content: `🏟️ **Newcastle Tactical Pitch Live Workspace Instantiated**\nAccess your interactive manager control board through this secure link:\n🔗 ${webLink}`
-    });
+    try {
+      const targetChannel = await client.channels.fetch('1542615988963385403');
+      await targetChannel.send({ 
+        content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
+        embeds: [destinationEmbed],
+        files: [finalAttachment] 
+      });
+    } catch (err) { console.error('Discord routing delivery error:', err); }
+
+    await interaction.editReply({ content: '🔒 **Lineup completed and locked!** Sent directly to logs channel.', components: [], files: [] });
+    return activeSessions.delete(msgId);
   }
 });
 
-// 3. CANVAS EXPORT COMPILATION PASS
+// INTERACTIVE COMPONENT LAYER GRAPHIC INTERFACE MODULE
+async function renderFieldGraphic(interaction, msgId, isFollowUp) {
+  const session = activeSessions.get(msgId);
+  if (!session) return;
+
+  const canvasBuffer = await buildCanvasBuffer(session);
+  const attachment = new AttachmentBuilder(canvasBuffer, { name: 'tactical-field.png' });
+  const activeSlot = session.roster[session.activeSlotIdx];
+
+  // Component Row 1: The player target distribution select option menu
+  const menuRow = new ActionRowBuilder().addComponents(
+    new UserSelectMenuBuilder()
+      .setCustomId(`pick-${msgId}`)
+      .setPlaceholder(`👉 Select player for Target: ${activeSlot.role}`)
+  );
+
+  // Component Row 2: Target index cycle switch button row selector
+  const navRow = new ActionRowBuilder();
+  session.roster.slice(0, 5).forEach((slot, i) => {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`target-${i}-${msgId}`)
+        .setLabel(slot.role)
+        .setStyle(i === session.activeSlotIdx ? ButtonStyle.Success : ButtonStyle.Secondary)
+    );
+  });
+
+  // Component Row 3: Nudge direction movement pad configurations
+  const controlPadRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`left-${session.activeSlotIdx}-${msgId}`).setLabel('◀ Move Left').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`up-${session.activeSlotIdx}-${msgId}`).setLabel('▲ Move Up').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`down-${session.activeSlotIdx}-${msgId}`).setLabel('▼ Move Down').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`right-${session.activeSlotIdx}-${msgId}`).setLabel('▶ Move Right').setStyle(ButtonStyle.Secondary)
+  );
+
+  // Component Row 4: Final confirmation publish submission row button
+  const actionRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`confirm-${msgId}`).setLabel('🔒 Lock & Publish Final Lineup').setStyle(ButtonStyle.Primary)
+  );
+
+  // Dynamic component distribution array mapping profiles cleanly
+  const interactiveComponents = [menuRow, navRow, controlPadRow, actionRow];
+
+  const payload = {
+    content: `🏟️ **Newcastle Tactical Pitch Setup Console (${session.total}v${session.total})**\nCurrently Editing: **[${activeSlot.role}]** (Assigned: ${activeSlot.name})\n\nUse the direction buttons below to nudge this position element across the pitch layout framework.`,
+    files: [attachment],
+    components: interactiveComponents
+  };
+
+  if (isFollowUp) {
+    return interaction.followUp({ ...payload, ephemeral: true });
+  } else {
+    return interaction.editReply(payload);
+  }
+}
+
+// GRAPHICS ENGINE COMPILATION CORE MODULE
 async function buildCanvasBuffer(session) {
   const width = 900; const height = 1150; 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
   
+  // Pitch Background Paint Stripes
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 230) { ctx.fillRect(0, i, width, 115); }
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, width - 80, height - 80);
-  ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(width / 2, height / 2, 100, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeRect(width / 2 - 200, height - 180, 400, 140); ctx.strokeRect(width / 2 - 200, 40, 400, 140);
-
-  for (let i = 0; i < session.roster.length; i++) {
-    const slot = session.roster[i];
-    const posX = (slot.pctX / 100) * width;
-    const posY = (slot.pctY / 100) * height;
-
-    if (slot.avatar && slot.avatar !== '') {
-      try {
-        const img = await loadImage(slot.avatar);
-        ctx.save();
-        ctx.beginPath(); ctx.arc(posX, posY, 42, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(img, posX - 42, posY - 42, 84, 84);
-        ctx.restore();
-        
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(posX, posY, 42, 0, Math.PI * 2); ctx.stroke();
-      } catch (err) {
-        ctx.fillStyle = '#e67e22';
-        ctx.beginPath(); ctx.arc(posX, posY, 42, 0, Math.PI * 2); ctx.fill();
-      }
-    } else {
-      ctx.fillStyle = '#7f8c8d';
-      ctx.beginPath(); ctx.arc(posX, posY, 35, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f1c40f';
-    ctx.font = 'bold 16px Arial';
-    ctx.fillText(slot.role, posX, posY + 68);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '14px Arial';
-    ctx.fillText(slot.name, posX, posY + 88);
-  }
-
-  return canvas.toBuffer();
-}
-
-client.login(process.env.TOKEN);
+  
