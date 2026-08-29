@@ -1,5 +1,5 @@
 const http = require('http'); 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage } = require('@napi-rs/canvas'); // FIXED: Swapped to self-contained compilation package
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
 // 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
@@ -67,7 +67,6 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    // SAFE PARSING EXTRACTION (Bypasses markdown truncation completely)
     const commandType = parts.at(0); 
     const targetIdx = parseInt(parts.at(1)); 
     const msgId = parts.at(2); 
@@ -119,7 +118,6 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    // SAFE PARSING EXTRACTION (Bypasses markdown truncation completely)
     const targetIdx = parseInt(parts.at(1)); 
     const msgId = parts.at(2); 
     
@@ -162,7 +160,7 @@ client.on('interactionCreate', async (interaction) => {
         content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
         embeds: [destinationEmbed],
         files: [finalAttachment] 
-      });
+    });
     } catch (err) { console.error('Discord routing delivery error:', err); }
 
     await interaction.editReply({ content: '🔒 **Lineup completed and locked!** Sent directly to logs channel.', components: [], files: [] });
@@ -232,3 +230,6 @@ async function buildCanvasBuffer(session) {
   
   // Pitch Background Paint Stripes
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 230) { ctx.fillRect(0, i, width, 115); }
+  
+  // Outer Line Boundaries & Boxes
