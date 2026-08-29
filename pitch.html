@@ -51,7 +51,6 @@
     </div>
   </div>
 
-  <!-- Step 1: Position Name Form Popup -->
   <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content" style="border-color: #f1c40f;">
@@ -61,13 +60,12 @@
           <input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker">
         </div>
         <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-warning w-100 font-weight-bold" onclick="submitPositionName()">Next: Choose Player ➡️</button>
+          <button type="button" class="btn btn-warning w-100" font-weight-bold" onclick="submitPositionName()">Next: Choose Player ➡️</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 2: Member Roster Card Panel -->
   <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
@@ -193,3 +191,5 @@
       
       sessionData.serverMembers.forEach(m => {
         const div = document.createElement('div');
+        div.className = 'col-12 member-card d-flex align-items-center gap-3';
+        
