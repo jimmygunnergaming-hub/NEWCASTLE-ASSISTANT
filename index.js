@@ -26,14 +26,14 @@ client.on('interactionCreate', async (interaction) => {
   // Security authorization lock check
   if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
-    const msgId = customId.split('-').pop(); // Fixed array splitting logic to prevent end of input crash
+    const msgId = customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ content: '❌ Only the coach who started this lineup command can customize slots.', ephemeral: true });
     }
   }
 
-  // 1. SLASH COMMAND INITIALIZATION (Hidden ephemerally from other users)
+  // 1. SLASH COMMAND INITIALIZATION
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
@@ -160,69 +160,81 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+// Helper function to render active editing interface
+async function renderFieldGraphic(interaction, msgId, isFollowUp) {
+  const session = activeSessions.get(msgId);
+  if (!session) return;
+
+  const canvasBuffer = await buildCanvasBuffer(session);
+  const attachment = new AttachmentBuilder(canvasBuffer, { name: 'tactical-field.png' });
+
+  const rows = [];
+  let currentRow = new ActionRowBuilder();
+
+  session.roster.forEach((slot, i) => {
+    if (i > 0 && i % 5 === 0) {
+      rows.push(currentRow);
+      currentRow = new ActionRowBuilder();
+    }
+    const label = `${slot.posLabel}: ${slot.assignedUser ? slot.assignedUser.name : 'Empty'}`;
+    currentRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`slot-${i}-${msgId}`)
+        .setLabel(label.substring(0, 80)) // Safety length limit for button labels
+        .setStyle(slot.assignedUser ? ButtonStyle.Success : ButtonStyle.Secondary)
+    );
+  });
+  rows.push(currentRow);
+
+  // Add the finalized confirmation system row
+  if (rows.length < 5) {
+    rows.push(new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`confirm-${msgId}`)
+        .setLabel('🔒 Lock & Publish Lineup')
+        .setStyle(ButtonStyle.Primary)
+    ));
+  }
+
+  const payload = {
+    content: `🏟️ **Lineup Editor Dashboard (${session.total}v${session.total})**\nClick a positional button below to customize its slot name and assign a player.`,
+    files: [attachment],
+    components: rows,
+    ephemeral: true
+  };
+
+  if (isFollowUp) {
+    return interaction.followUp(payload);
+  } else {
+    return interaction.editReply(payload);
+  }
+}
+
 async function buildCanvasBuffer(session) {
   const width = 800;
   const height = 1000;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
+  // Draw Field Background Stripes
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#219653'; 
   for (let i = 0; i < height; i += 200) { ctx.fillRect(0, i, width, 100); }
 
+  // Draw Field Markings
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, width - 80, height - 80);
   ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  const coords = [{ x: width / 2, y: height - 100 }];
+  // Calculate Coordinate Positions Structurally
+  const coords = [{ x: width / 2, y: height - 100 }]; // Index 0 is always GK
+  
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
-    let rows = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
-    const playersPerRow = Math.ceil(outfieldCount / rows);
-    let assignedCount = 0;
-
-    for (let r = 0; r < rows; r++) {
-      const rowY = (height - 280) - (r * (height - 480) / rows);
-      const countInThisRow = Math.min(playersPerRow, outfieldCount - assignedCount);
-      for (let p = 0; p < countInThisRow; p++) {
-        coords.push({ x: (width / (countInThisRow + 1)) * (p + 1), y: rowY });
-        assignedCount++;
-      }
-    }
-  }
-
-  for (let i = 0; i < session.total; i++) {
-    const slot = session.roster[i]; const pos = coords[i];
-
-    if (slot.assignedUser) {
-      try {
-        const img = await loadImage(slot.assignedUser.avatar);
-        ctx.save(); ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(img, pos.x - 40, pos.y - 40, 80, 80); ctx.restore();
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.stroke();
-      } catch (e) {}
-    } else {
-      ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
-    }
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 15px Arial';
-    ctx.fillText(slot.posLabel, pos.x, pos.y + 65);
-    ctx.fillStyle = '#ffffff'; ctx.font = '13px Arial';
-    ctx.fillText(slot.assignedUser ? slot.assignedUser.name : 'Unassigned', pos.x, pos.y + 85);
-  }
-  return canvas.toBuffer();
-}
-
-async function renderFieldGraphic(interaction, msgId, isEdit) {
-  const session = activeSessions.get(msgId);
-  const buffer = await buildCanvasBuffer(session);
-  const fileAttachment = new AttachmentBuilder(buffer, { name: 'pitch.png' });
-
-  const row1 = new ActionRowBuilder();
-  const row2 = new ActionRowBuilder();
-  const finishRow = new ActionRowBuilder();
-
-  session.roster.forEach((slot, index) => {
+    // Map rows based on tactical density thresholds
+    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
+    
+    let baseDistribution = [];
+    if (rowsCount === 1) baseDistribution = [outfieldCount];
+    else if (rowsCount === 2) baseDistribution = [Math.ceil(outfieldCount * 0.6), Math.floor(outfieldCount * 0.4)];
