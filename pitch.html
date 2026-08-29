@@ -7,13 +7,13 @@
   <style>
     body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 10px; user-select: none; }
     
-    /* Control buttons placed at the top for immediate access */
-    .top-controls { margin: 10px auto; max-width: 800px; display: flex; justify-content: center; gap: 15px; }
+    /* Top action banner */
+    .top-controls { margin: 10px auto; max-width: 850px; display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #333; }
     
-    /* Enlarged full-screen tactical stadium pitch */
+    /* Full-screen tactical field pitch setup */
     .pitch-container-wrapper { width: 100%; max-width: 850px; margin: 0 auto; position: relative; }
     .pitch-environment { 
-      position: relative; width: 100%; height: 90vh;
+      position: relative; width: 100%; height: 85vh;
       background: #27ae60;
       background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
       background-size: 100% 10%;
@@ -25,33 +25,37 @@
     .penalty-box-top { position: absolute; top: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-top: none; }
     .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-bottom: none; }
     
-    /* Enlarge player circle elements */
+    /* Dynamic player box nodes (No circle at start) */
     .player-node {
-      position: absolute; width: 85px; height: 85px; background: #7f8c8d;
-      border: 4px solid #fff; border-radius: 50%;
+      position: absolute; width: 85px; height: 85px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transform: translate(-50%, -50%); z-index: 10; box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+      transform: translate(-50%, -50%); z-index: 10;
     }
-    .drag-handle { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; }
-    .avatar-circle { font-size: 28px; color: #fff; pointer-events: none; }
-    .player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; pointer-events: none; }
+    .drag-handle { width: 75px; height: 75px; background: rgba(0,0,0,0.6); border: 2px dashed #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; transition: background 0.2s; }
+    .drag-handle:hover { background: rgba(241, 196, 15, 0.4); border-color: #f1c40f; }
+    .add-text { font-size: 10px; font-weight: bold; color: #fff; pointer-events: none; text-align: center; }
     
-    .label-container { position: absolute; bottom: -48px; width: 120px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.9); border-radius: 4px; padding: 3px; border: 1px solid #555; cursor: pointer; }
+    /* Clean profile picture circle after player is selected */
+    .player-node img { width: 75px; height: 75px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; pointer-events: none; box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
+    
+    /* Position and Name labels */
+    .label-container { position: absolute; bottom: -45px; width: 120px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; cursor: pointer; text-align: center; }
     .pos-name { color: #f1c40f; text-transform: uppercase; pointer-events: none; } 
     .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
     
-    .modal-content { background: #222; color: #fff; border: 2px solid #f1c40f; }
-    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 12px; margin-bottom: 6px; }
-    .member-card:hover { background: #f1c40f; color: #000; transform: translateY(-2px); }
+    /* Server roster design list overlay */
+    .modal-content { background: #1c1c1c; color: #fff; border: 2px solid #2ecc71; border-radius: 12px; }
+    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; margin-bottom: 5px; border: 1px solid #34495e; }
+    .member-card:hover { background: #2ecc71; color: #000; transform: translateY(-2px); font-weight: bold; border-color: #fff; }
   </style>
   <script src="https://cloudflare.com"></script>
 </head>
 <body>
+
   <div class="top-controls">
-    <h3>⚽ NEWCASTLE STRATEGY BOARD</h3>
-    <button class="btn btn-success btn-md px-4 shadow" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
+    <h4 style="margin:0; color:#2ecc71; font-weight:bold;">🏟️ NEWCASTLE LINEUP WORKSPACE</h4>
+    <button class="btn btn-success btn-md px-4 shadow font-weight-bold" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
   </div>
-  <p class="text-muted small">Drag circles anywhere. Click a circle to assign positions and server players!</p>
   
   <div class="pitch-container-wrapper">
     <div class="pitch-environment" id="pitch">
@@ -66,14 +70,14 @@
   <!-- Step 1: Position Name Form Popup -->
   <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
+      <div class="modal-content" style="border-color: #f1c40f;">
         <div class="modal-header border-secondary"><h5 class="modal-title">Set Position Name</h5></div>
         <div class="modal-body text-start">
-          <label class="form-label text-muted">What position is this circle? (e.g. GK, CB, Striker, LW)</label>
+          <label class="form-label text-muted">What position is this slot? (e.g. GK, CB, Striker, LW)</label>
           <input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker">
         </div>
         <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-warning w-100" onclick="submitPositionName()">Next: Choose Player ➡️</button>
+          <button type="button" class="btn btn-warning w-100 font-weight-bold" onclick="submitPositionName()">Next: Choose Player ➡️</button>
         </div>
       </div>
     </div>
@@ -83,7 +87,7 @@
   <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header border-secondary"><h5 class="modal-title">Select Team Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header border-secondary"><h5 class="modal-title">Select Live Server Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <div class="modal-body"><div class="row g-2" id="memberListContainer"></div></div>
       </div>
     </div>
@@ -113,11 +117,11 @@
       container.innerHTML = '';
       
       sessionData.roster.forEach((player, idx) => {
-        // Dynamic horizontal scattering logic based on slot index counts
+        // Scatter slots from defense to attack automatically
         let pctX = 50;
-        let pctY = 75 - (idx * 15); // Layer players cleanly from defense to offense
+        let pctY = 75 - (idx * 15);
 
-        if (idx === 0) { pctX = 50; pctY = 90; } // Goalkeeper lock
+        if (idx === 0) { pctX = 50; pctY = 90; } 
         else if (idx === 1) { pctX = 25; pctY = 70; }
         else if (idx === 2) { pctX = 75; pctY = 70; }
         else if (idx === 3) { pctX = 50; pctY = 65; }
@@ -138,7 +142,7 @@
         const handle = document.createElement('div');
         handle.className = 'drag-handle';
         handle.id = 'handle_' + idx;
-        handle.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>';
+        handle.innerHTML = '<span class="add-text">➕ ADD<br>PLAYER</span>';
         
         handle.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
         handle.addEventListener('click', (e) => {
@@ -194,15 +198,3 @@
       const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
       
       sessionData.roster[activeEditIdx].posLabel = finalPosName;
-      document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
-      
-      posModal.hide();
-      openPlayerPicker();
-    }
-
-    function openPlayerPicker() {
-      const container = document.getElementById('memberListContainer');
-      container.innerHTML = '';
-      
-      sessionData.serverMembers.forEach(m => {
-        const div = document.createElement('div');
