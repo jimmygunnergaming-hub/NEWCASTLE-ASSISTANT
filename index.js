@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const http = require('http'); // Standard lightweight server helper
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 app.use(express.json());
@@ -136,19 +137,16 @@ app.get('/pitch/:sessionId', (req, res) => {
           document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMouseMove), {once: true});
         }
 
-        // Triggered when clicking a pitch circle
         function handleNodeClick(idx) {
           activeEditIdx = idx;
           document.getElementById('posNameInput').value = sessionData.roster[idx].posLabel;
           posModal.show();
         }
 
-        // Submits the manual position naming input text
         function submitPositionName() {
           const inputVal = document.getElementById('posNameInput').value.trim();
           const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
           
-          // Update data states
           sessionData.roster[activeEditIdx].posLabel = finalPosName;
           document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
           
@@ -168,7 +166,7 @@ app.get('/pitch/:sessionId', (req, res) => {
                   <b>\${m.name}</b>
                 </div>
               </div>
-            \`\;;
+            \`;
           });
           pickerModal.show();
         }
@@ -188,3 +186,8 @@ app.get('/pitch/:sessionId', (req, res) => {
           }).then(() => alert('Lineup finalized! You can safely close this tab and check Discord.'));
         }
       </script>
+    </body>
+    </html>
+  `);
+});
+
