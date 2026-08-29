@@ -2,7 +2,7 @@ const http = require('http');
 const { createCanvas, loadImage } = require('canvas');
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
-// 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
+// 1. LIGHTWEIGHT PORT LISTENER
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Newcastle Arena Active');
@@ -55,8 +55,8 @@ client.on('interactionCreate', async (interaction) => {
   // INTERACTION FLOW 2: SLOT BUTTON CLICKED -> SHOW POSITION MENU
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIX: Re-inserted correct array index for target index extraction
-    const msgId = parts[2];               // FIX: Re-inserted correct array index for message ID extraction
+    const targetIdx = parseInt(parts[1]); // FIX: Restored array index 1
+    const msgId = parts[2];               // FIX: Restored array index 2
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -93,7 +93,7 @@ client.on('interactionCreate', async (interaction) => {
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0]; // FIX: Forced extraction of pure string element instead of array object
+    const chosenPos = interaction.values[0]; // FIX: Restored array index 0
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -120,7 +120,6 @@ client.on('interactionCreate', async (interaction) => {
       avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 128 })
     };
 
-    // FIX: Using interactive ephemeral message cycle mechanics cleanly without causing double rendering collisions
     await interaction.update({ content: '✅ Player mapped successfully. Updating your visual editor...', components: [], files: [] });
     return renderFieldGraphic(interaction, msgId, true);
   }
@@ -232,3 +231,9 @@ async function buildCanvasBuffer(session) {
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
   // FIELD POSITION COORDINATES MATRIX
+  const coords = [{ x: width / 2, y: height - 100 }]; 
+  
+  if (session.total > 1) {
+    const outfieldCount = session.total - 1;
+    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
+    let baseDistribution = [];
