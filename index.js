@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const https = require('https'); // Required to proxy secure images safely
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 
 app.use(express.json({ limit: '50mb' }));
@@ -16,6 +17,18 @@ app.get('/api/session/:sessionId', (req, res) => {
   const session = liveSessions.get(req.params.sessionId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
   res.json(session);
+});
+
+// 🛡️ IMAGE PROXY SERVER (Fixes the button freeze bug)
+app.get('/api/proxy-avatar', (req, res) => {
+  const avatarUrl = req.query.url;
+  if (!avatarUrl) return res.sendStatus(400);
+
+  https.get(avatarUrl, (proxyRes) => {
+    res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/png');
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Safe bypass lock
+    proxyRes.pipe(res);
+  }).on('error', () => res.sendStatus(500));
 });
 
 app.post('/api/save-lineup/:id', async (req, res) => {
@@ -37,7 +50,7 @@ app.post('/api/save-lineup/:id', async (req, res) => {
 
   session.roster.forEach((slot) => {
     const userDisplay = slot.assignedUser 
-      ? '👤 **' + slot.assignedUser.name + '**\n[Profile Picture Avatar](' + slot.assignedUser.avatar + ')' 
+      ? '👤 **' + slot.assignedUser.name + '**' 
       : '*Unassigned Empty Slot*';
     summaryEmbed.addFields({ name: '⚽ Position: ' + slot.posLabel, value: userDisplay, inline: true });
   });
@@ -111,8 +124,7 @@ client.on('interactionCreate', async interaction => {
       }))
     });
 
-    // AUTOMATIC URL DETECTION ENGINE (Fixes the render.com redirect loophole)
-    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    const appUrl = 'https://onrender.com';
     const dashboardLink = appUrl + '/pitch/' + sessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
@@ -131,7 +143,7 @@ client.on('interactionCreate', async interaction => {
       return interaction.reply({ content: '❌ No active or recent layout records found to update.', ephemeral: true });
     }
 
-    const appUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    const appUrl = 'https://onrender.com';
     const dashboardLink = appUrl + '/pitch/' + mostRecentSessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
@@ -146,9 +158,4 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-if (!process.env.DISCORD_TOKEN) {
-  console.error("❌ DEPLOYMENT FATAL ERROR: Missing DISCORD_TOKEN configuration variable.");
-  process.exit(1);
-} else {
-  client.login(process.env.DISCORD_TOKEN);
-}
+client.login(process.env.DISCORD_TOKEN);
