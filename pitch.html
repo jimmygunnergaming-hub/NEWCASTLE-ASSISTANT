@@ -6,11 +6,7 @@
   <link href="https://jsdelivr.net" rel="stylesheet">
   <style>
     body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 10px; user-select: none; }
-    
-    /* Top action banner */
     .top-controls { margin: 10px auto; max-width: 850px; display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #333; }
-    
-    /* Full-screen tactical field pitch setup */
     .pitch-container-wrapper { width: 100%; max-width: 850px; margin: 0 auto; position: relative; }
     .pitch-environment { 
       position: relative; width: 100%; height: 85vh;
@@ -24,26 +20,14 @@
     .center-circle { position: absolute; top: 50%; left: 50%; width: 160px; height: 160px; border: 5px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
     .penalty-box-top { position: absolute; top: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-top: none; }
     .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-bottom: none; }
-    
-    /* Dynamic player box nodes (No circle at start) */
-    .player-node {
-      position: absolute; width: 85px; height: 85px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transform: translate(-50%, -50%); z-index: 10;
-    }
+    .player-node { position: absolute; width: 85px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }
     .drag-handle { width: 75px; height: 75px; background: rgba(0,0,0,0.6); border: 2px dashed #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; transition: background 0.2s; }
     .drag-handle:hover { background: rgba(241, 196, 15, 0.4); border-color: #f1c40f; }
     .add-text { font-size: 10px; font-weight: bold; color: #fff; pointer-events: none; text-align: center; }
-    
-    /* Clean profile picture circle after player is selected */
     .player-node img { width: 75px; height: 75px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; pointer-events: none; box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
-    
-    /* Position and Name labels */
     .label-container { position: absolute; bottom: -45px; width: 120px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; cursor: pointer; text-align: center; }
     .pos-name { color: #f1c40f; text-transform: uppercase; pointer-events: none; } 
     .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-    
-    /* Server roster design list overlay */
     .modal-content { background: #1c1c1c; color: #fff; border: 2px solid #2ecc71; border-radius: 12px; }
     .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; margin-bottom: 5px; border: 1px solid #34495e; }
     .member-card:hover { background: #2ecc71; color: #000; transform: translateY(-2px); font-weight: bold; border-color: #fff; }
@@ -117,7 +101,6 @@
       container.innerHTML = '';
       
       sessionData.roster.forEach((player, idx) => {
-        // Scatter slots from defense to attack automatically
         let pctX = 50;
         let pctY = 75 - (idx * 15);
 
@@ -198,3 +181,15 @@
       const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
       
       sessionData.roster[activeEditIdx].posLabel = finalPosName;
+      document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
+      
+      posModal.hide();
+      openPlayerPicker();
+    }
+
+    function openPlayerPicker() {
+      const container = document.getElementById('memberListContainer');
+      container.innerHTML = '';
+      
+      sessionData.serverMembers.forEach(m => {
+        const div = document.createElement('div');
