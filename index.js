@@ -1,288 +1,190 @@
-const http = require('http');
-const { createCanvas, loadImage } = require('canvas');
-const { 
-  Client, 
-  GatewayIntentBits, 
-  SlashCommandBuilder, 
-  ActionRowBuilder, 
-  StringSelectMenuBuilder,
-  UserSelectMenuBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  AttachmentBuilder
-} = require('discord.js');
+const express = require('express');
+const app = express();
+const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+
+app.use(express.json());
+
+const liveSessions = new Map();
 
 // -------------------------------------------------------------
-// FAKE WEB SERVER TO KEEP RENDER HAPPY & FREE
+// DYNAMIC IMMERSIVE WEB APP SYSTEM (PITCH DASHBOARD)
 // -------------------------------------------------------------
-http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Newcastle Lineup Image Engine Online');
-}).listen(process.env.PORT || 3000);
+app.get('/pitch/:sessionId', (req, res) => {
+  const session = liveSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).send('Lineup session expired or not found.');
 
-const client = new Client({ 
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] 
-});
-
-const activeSessions = new Map();
-
-client.once('ready', () => {
-  console.log(`Bot is online as ${client.user.tag}`);
-
-  // Create choices array for 1v1 up to 11v11
-  const formatChoices = [];
-  for (let i = 1; i <= 11; i++) {
-    formatChoices.push({ name: `${i}v${i} Matchup`, value: i.toString() });
-  }
-
-  const command = new SlashCommandBuilder()
-    .setName('lineup')
-    .setDescription('Build a real graphical football field lineup layout')
-    .addStringOption(option =>
-      option.setName('format')
-        .setDescription('Select match size format (1v1 up to 11v11)')
-        .setRequired(true)
-        .addChoices(...formatChoices));
-
-  client.application.commands.create(command);
-});
-
-client.on('interactionCreate', async interaction => {
-  // Security lock verification check
-  if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu() || interaction.isButton()) {
-    const session = activeSessions.get(interaction.message.id);
-    if (session && session.creatorId !== interaction.user.id) {
-      return interaction.reply({ 
-        content: "❌ Only the coach who started this lineup command can place players.", 
-        ephemeral: true 
-      });
-    }
-  }
-
-  // 1. SLASH COMMAND INVOCATION
-  if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
-    const totalPlayers = parseInt(interaction.options.getString('format'));
-
-    const formationOptions = [
-      { label: 'Standard Tactical Layout', value: 'Standard' },
-      { label: 'Attacking Setup Grid', value: 'Attacking' },
-      { label: 'Defensive Strategy Wall', value: 'Defensive' }
-    ];
-
-    const row = new ActionRowBuilder().addComponents(
-      new StringSelectMenuBuilder()
-        .setCustomId(`setup_${totalPlayers}`)
-        .setPlaceholder('Choose a starting pitch layout...')
-        .addOptions(formationOptions)
-    );
-
-    const msg = await interaction.reply({
-      content: `🏟️ **Match format selected:** ${totalPlayers}v${totalPlayers}. Pick your tactical strategy:`,
-      components: [row],
-      fetchReply: true
-    });
-
-    // Create session tracking
-    activeSessions.set(msg.id, {
-      creatorId: interaction.user.id,
-      total: totalPlayers,
-      activeSlot: null,
-      roster: Array.from({ length: totalPlayers }, (_, i) => ({
-        index: i,
-        posLabel: i === 0 ? 'GK' : `POS #${i + 1}`,
-        assignedUser: null
-      }))
-    });
-    return;
-  }
-
-  // 2. STRATEGY SELECTION
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('setup_')) {
-    const msgId = interaction.message.id;
-    return renderPitchGraphics(interaction, msgId);
-  }
-
-  // 3. SELECTION MENU INTERACTION
-  if (interaction.isButton() && interaction.customId.startsWith('edit_')) {
-    const msgId = interaction.message.id;
-    const targetIdx = parseInt(interaction.customId.split('_')[1]);
-    const session = activeSessions.get(msgId);
-    if (!session) return;
-
-    session.activeSlot = targetIdx;
-
-    const userSelect = new UserSelectMenuBuilder()
-      .setCustomId('assign_member')
-      .setPlaceholder(`Pick a player for position: ${session.roster[targetIdx].posLabel}`);
-
-    return interaction.update({
-      content: `⚙️ **Modifying Slot:** *${session.roster[targetIdx].posLabel}*\nSelect a member from your server list roster dropdown menu below.`,
-      components: [new ActionRowBuilder().addComponents(userSelect)]
-    });
-  }
-
-  // 4. CHOOSE MEMBER AND REPAINT IMAGE
-  if (interaction.isUserSelectMenu() && interaction.customId === 'assign_member') {
-    const msgId = interaction.message.id;
-    const session = activeSessions.get(msgId);
-    if (!session) return;
-
-    const targetUser = interaction.users.first();
-    session.roster[session.activeSlot].assignedUser = {
-      name: targetUser.username,
-      avatar: targetUser.displayAvatarURL({ extension: 'png', size: 128 })
-    };
-
-    return renderPitchGraphics(interaction, msgId);
-  }
-});
-
-// -------------------------------------------------------------
-// GRAPHICAL RENDERING ENGINE (PITCH + PROPIX DRAWING)
-// -------------------------------------------------------------
-async function renderPitchGraphics(interaction, msgId) {
-  const session = activeSessions.get(msgId);
-  
-  // Set up standard canvas size
-  const width = 600;
-  const height = 800;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-
-  // Draw Football Pitch Background
-  ctx.fillStyle = '#228B22'; // Forest Grass Green
-  ctx.fillRect(0, 0, width, height);
-
-  // Draw Pitch Line Markings
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(20, 20, width - 40, height - 40); // Field Outer Boundaries
-  
-  // Midfield Line
-  ctx.beginPath();
-  ctx.moveTo(20, height / 2);
-  ctx.lineTo(width - 20, height / 2);
-  ctx.stroke();
-
-  // Penalty Box (Bottom Team area)
-  ctx.strokeRect(width / 2 - 120, height - 150, 240, 130);
-  // Penalty Box (Top Team area)
-  ctx.strokeRect(width / 2 - 120, 20, 240, 130);
-
-  // Draw Center Circle
-  ctx.beginPath();
-  ctx.arc(width / 2, height / 2, 70, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // DYNAMICALLY GENERATE PLAYER POSITION GRID COORDINATES (1 to 11)
-  const total = session.total;
-  const coords = [];
-
-  // Always enforce goalkeeper coordinate layout positioning at bottom base line
-  coords.push({ x: width / 2, y: height - 70 });
-
-  if (total > 1) {
-    const fieldPlayersCount = total - 1;
-    // Split remaining elements evenly into vertical horizontal coordinate row tiers
-    let rows = 1;
-    if (fieldPlayersCount > 3) rows = 2;
-    if (fieldPlayersCount > 7) rows = 3;
-
-    const playersPerRow = Math.ceil(fieldPlayersCount / rows);
-    let assignedCount = 0;
-
-    for (let r = 0; r < rows; r++) {
-      // Determine vertical heights row step tier placements
-      const rowY = (height - 200) - (r * (height - 350) / rows);
-      const countInThisRow = Math.min(playersPerRow, fieldPlayersCount - assignedCount);
-
-      for (let p = 0; p < countInThisRow; p++) {
-        const rowX = (width / (countInThisRow + 1)) * (p + 1);
-        coords.push({ x: rowX, y: rowY });
-        assignedCount++;
-      }
-    }
-  }
-
-  // DRAW THE GREY CIRCLES / PROFILE PICTURES ONTO CANVAS PITCH
-  for (let i = 0; i < total; i++) {
-    const currentSlot = session.roster[i];
-    const pos = coords[i];
-
-    if (currentSlot.assignedUser) {
-      // Draw User Profile Pic inside a clean clipping bubble circle
-      try {
-        const img = await loadImage(currentSlot.assignedUser.avatar);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, pos.x - 30, pos.y - 30, 60, 60);
-        ctx.restore();
-      } catch (e) {
-        // Fallback drawing if avatar parsing encounters a network glitch
-        ctx.fillStyle = '#1abc9c';
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else {
-      // Draw the Requested Interactive Empty Position Grey Circle Dot
-      ctx.fillStyle = '#7f8c8d'; // Grey Dot
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2);
-      ctx.fill();
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Tactical Field Live Stream Console</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link href="https://jsdelivr.net" rel="stylesheet">
+      <style>
+        body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; }
+        .pitch-environment { 
+          position: relative; width: 100%; max-width: 700px; height: 85vh; margin: 20px auto;
+          background: linear-gradient(to bottom, #1e722a 50%, #15531e 50%);
+          background-size: 100% 8%; 
+          border: 4px solid rgba(255,255,255,0.8); border-radius: 12px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;
+        }
+        .midfield-line { position: absolute; top: 50%; left: 0; width: 100%; height: 4px; background: rgba(255,255,255,0.8); }
+        .center-circle { position: absolute; top: 50%; left: 50%; width: 140px; height: 140px; border: 4px solid rgba(255,255,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); }
+        .penalty-box-top { position: absolute; top: 0; left: 50%; width: 260px; height: 130px; border: 4px dashed rgba(255,255,255,0.5); transform: translateX(-50%); border-top: none; }
+        .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 260px; height: 130px; border: 4px solid rgba(255,255,255,0.8); transform: translateX(-50%); border-bottom: none; }
+        
+        .player-node {
+          position: absolute; width: 75px; height: 75px; background: #2c3e50;
+          border: 3px solid #f1c40f; border-radius: 50%; cursor: move;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          transition: transform 0.1s ease, box-shadow 0.2s; box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+          transform: translate(-50%, -50%); z-index: 10;
+        }
+        .player-node:hover { box-shadow: 0 0 20px #f1c40f; scale: 1.08; }
+        .player-node img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .label-container { position: absolute; bottom: -42px; width: 120px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 4px; border: 1px solid #444; }
+        .pos-name { color: #f1c40f; text-transform: uppercase; letter-spacing: 0.5px; } 
+        .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+        
+        .modal-content { background: #222; color: #fff; border: 2px solid #f1c40f; }
+        .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .member-card:hover { background: #f1c40f; color: #000; transform: translateY(-3px); }
+      </style>
+    </head>
+    <body class="container-fluid py-3">
+      <h3>⚽ NEWCASTLE ASSISTANT STRATEGY CONSOLE</h3>
+      <p class="text-muted">Format: <b class="text-white">${session.total}v${session.total}</b> | Drag circles anywhere. Click a circle to name its position and assign players!</p>
       
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+      <div class="pitch-environment" id="pitch">
+        <div class="midfield-line"></div>
+        <div class="center-circle"></div>
+        <div class="penalty-box-top"></div>
+        <div class="penalty-box-bot"></div>
+        
+        ${session.roster.map((player, idx) => {
+          const pctY = 85 - (idx * (70 / Math.max(1, session.total - 1)));
+          const pctX = 50 + (idx % 2 === 0 ? (idx * 3) : -(idx * 3));
+          return `
+            <div class="player-node" id="node_${idx}" style="left: ${pctX}%; top: ${pctY}%;" 
+                 mousedown="startNodeDrag(event, ${idx})" onclick="handleNodeClick(${idx})">
+              <div id="avatar_box_${idx}" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                <span style="font-size:24px; color:#95a5a6;">⚪</span>
+              </div>
+              <div class="label-container">
+                <div class="pos-name" id="lbl_pos_${idx}">${player.posLabel}</div>
+                <div class="usr-name" id="lbl_usr_${idx}">Unassigned</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
 
-    // Paint Position Name & Assignment Data Labels Underneath
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    
-    const displayName = currentSlot.assignedUser ? currentSlot.assignedUser.name : 'Empty';
-    ctx.fillText(currentSlot.posLabel, pos.x, pos.y + 45);
-    
-    ctx.fillStyle = '#f1c40f'; // Gold text layout coloring layer for usernames
-    ctx.font = '12px Arial';
-    ctx.fillText(displayName, pos.x, pos.y + 60);
-  }
+      <button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Save & Send to Discord</button>
 
-  // Package layout file into standard discord attachments buffer pipeline streams
-  const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'pitch-lineup.png' });
+      <!-- Step 1: Position Name Prompt Modal -->
+      <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header border-secondary"><h5 class="modal-title">Set Position Name</h5></div>
+            <div class="modal-body text-start">
+              <label class="form-label text-muted">What position is this circle? (e.g. GK, CB, Striker)</label>
+              <input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker">
+            </div>
+            <div class="modal-footer border-secondary">
+              <button type="button" class="btn btn-warning w-100" onclick="submitPositionName()">Next: Choose Player ➡️</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  // Generate dynamic button mapping rows to let users select slots directly
-  const row1 = new ActionRowBuilder();
-  const row2 = new ActionRowBuilder();
+      <!-- Step 2: Member Selection Popup -->
+      <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header border-secondary"><h5 class="modal-title">Select Team Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-2" id="memberListContainer"></div></div>
+          </div>
+        </div>
+      </div>
 
-  session.roster.forEach((slot, index) => {
-    const btn = new ButtonBuilder()
-      .setCustomId(`edit_${index}`)
-      .setLabel(slot.posLabel)
-      .setStyle(slot.assignedUser ? ButtonStyle.Success : ButtonStyle.Secondary);
+      <script src="https://jsdelivr.net"></script>
+      <script>
+        const sessionData = ${JSON.stringify(session)};
+        let activeEditIdx = null;
+        let posModal, pickerModal;
 
-    if (index < 5) row1.addComponents(btn);
-    else if (index < 10) row2.addComponents(btn);
-  });
+        document.addEventListener("DOMContentLoaded", () => {
+          posModal = new bootstrap.Modal(document.getElementById('positionModal'));
+          pickerModal = new bootstrap.Modal(document.getElementById('pickerModal'));
+        });
 
-  const componentsArray = [];
-  if (row1.components.length > 0) componentsArray.push(row1);
-  if (row2.components.length > 0) componentsArray.push(row2);
+        function startNodeDrag(e, idx) {
+          if (e.target.closest('.label-container')) return;
+          const node = document.getElementById('node_' + idx);
+          const pitch = document.getElementById('pitch');
+          
+          function onMouseMove(event) {
+            const rect = pitch.getBoundingClientRect();
+            let x = ((event.clientX - rect.left) / rect.width) * 100;
+            let y = ((event.clientY - rect.top) / rect.height) * 100;
+            if(x >= 5 && x <= 95) node.style.left = x + '%';
+            if(y >= 5 && y <= 95) node.style.top = y + '%';
+          }
+          
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMouseMove), {once: true});
+        }
 
-  const payload = {
-    content: `📋 **Pitch Lineup Builder Console Panel**\nClick a matching button position name block to select who you want to transfer into that coordinate slot space.`,
-    files: [attachment],
-    components: componentsArray
-  };
+        // Triggered when clicking a pitch circle
+        function handleNodeClick(idx) {
+          activeEditIdx = idx;
+          document.getElementById('posNameInput').value = sessionData.roster[idx].posLabel;
+          posModal.show();
+        }
 
-  if (interaction.replied || interaction.deferred) {
-    await interaction.update(payload);
-  } else {
-    await interaction.reply(payload);
-  }
-}
+        // Submits the manual position naming input text
+        function submitPositionName() {
+          const inputVal = document.getElementById('posNameInput').value.trim();
+          const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
+          
+          // Update data states
+          sessionData.roster[activeEditIdx].posLabel = finalPosName;
+          document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
+          
+          posModal.hide();
+          openPlayerPicker();
+        }
 
-client.login(process.env.DISCORD_TOKEN);
+        function openPlayerPicker() {
+          const container = document.getElementById('memberListContainer');
+          container.innerHTML = '';
+          
+          sessionData.serverMembers.forEach(m => {
+            container.innerHTML += \`
+              <div class="col-12">
+                <div class="member-card p-2 d-flex align-items-center gap-3" onclick="assignUser('\${m.name}', '\${m.avatar}')">
+                  <img src="\${m.avatar}" style="width:40px; height:40px; border-radius:50%;" />
+                  <b>\${m.name}</b>
+                </div>
+              </div>
+            \`\;;
+          });
+          pickerModal.show();
+        }
+
+        function assignUser(name, avatar) {
+          pickerModal.hide();
+          document.getElementById('avatar_box_' + activeEditIdx).innerHTML = \`<img src="\${avatar}" />\`;
+          document.getElementById('lbl_usr_' + activeEditIdx).innerText = name;
+          sessionData.roster[activeEditIdx].assignedUser = { name, avatar };
+        }
+
+        function saveAndPostToDiscord() {
+          fetch('/api/save-lineup/' + sessionData.id, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roster: sessionData.roster })
+          }).then(() => alert('Lineup finalized! You can safely close this tab and check Discord.'));
+        }
+      </script>
