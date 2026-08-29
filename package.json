@@ -6,8 +6,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "express": "^4.19.2",
-    "html-to-image-wrapper": "^1.0.3"
+    "canvas": "^2.11.2",
+    "discord.js": "^14.14.1"
   }
 }
