@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs'); // FIXED: Explicitly added native filesystem package
 const path = require('path');
 const { createCanvas, loadImage } = require('canvas');
 const { Client, GatewayIntentBits, SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } = require('discord.js');
@@ -11,7 +12,11 @@ const activeSessions = new Map();
 
 // 1. LIVE WEB APP ROUTING ENDPOINTS
 app.get('/lineup/:id', (req, res) => {
-  res.sendFile(path.join(__dirname, 'pitch.html'));
+  const filePath = path.join(__dirname, 'pitch.html');
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('❌ Error: pitch.html was not found in your main repository folder directory.');
+  }
+  res.sendFile(filePath);
 });
 
 app.get('/api/session/:id', (req, res) => {
@@ -118,7 +123,6 @@ client.on('interactionCreate', async (interaction) => {
     const externalHost = process.env.RENDER_EXTERNAL_HOSTNAME || `localhost:${process.env.PORT || 3000}`;
     const secureProtocol = process.env.RENDER_EXTERNAL_HOSTNAME ? 'https' : 'http';
     
-    // Attaches the unique user ID parameter to the dashboard URL string to enforce supervisor authentication checks
     const webLink = `${secureProtocol}://${externalHost}/lineup/${msg.id}?uid=${interaction.user.id}`;
     
     return interaction.editReply({
