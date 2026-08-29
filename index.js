@@ -50,7 +50,6 @@ client.on('interactionCreate', async interaction => {
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ 
         content: '❌ Only the coach who started this lineup command can add players.', 
-        header: true,
         ephemeral: true 
       });
     }
@@ -284,3 +283,4 @@ async function publishFinalLineup(interaction, msgId) {
     const targetChannel = await client.channels.fetch('1542615988963385403');
     await targetChannel.send({ 
       content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
+      embeds: [destinationEmbed],
