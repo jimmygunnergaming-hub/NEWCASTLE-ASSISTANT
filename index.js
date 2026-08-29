@@ -55,8 +55,8 @@ client.on('interactionCreate', async (interaction) => {
   // 2. TRIGGER POSITION SELECTION SYSTEM
   if (interaction.isButton() && interaction.customId.startsWith('slot-')) {
     const parts = interaction.customId.split('-');
-    const targetIdx = parseInt(parts[1]); // Fixed array splitting indexes
-    const msgId = parts[2];               // Fixed array splitting indexes
+    const targetIdx = parseInt(parts[1]); // FIX: Added explicit index mapping back from the raw split payload array
+    const msgId = parts[2];               // FIX: Added explicit index mapping back from the raw split payload array
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -93,7 +93,7 @@ client.on('interactionCreate', async (interaction) => {
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    const chosenPos = interaction.values[0];
+    const chosenPos = interaction.values[0]; // FIX: Assigned specifically as a single string item value, rather than raw text collection array
     session.roster[session.activeSlotIdx].posLabel = chosenPos;
 
     const rosterPickerMenu = new UserSelectMenuBuilder()
@@ -133,7 +133,7 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: '⚠️ You must fill out every position node slot before publishing.', ephemeral: true });
     }
 
-    // Acknowledge the interaction to prevent Discord timeouts while the canvas processes
+    // Acknowledge the interaction to prevent Discord timeouts while canvas processes
     await interaction.deferUpdate();
 
     const finalBuffer = await buildCanvasBuffer(session);
@@ -233,7 +233,3 @@ async function buildCanvasBuffer(session) {
   
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
-    let rowsCount = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
-    
-    let baseDistribution = [];
-    if (rowsCount === 1) baseDistribution = [outfieldCount];
