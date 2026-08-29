@@ -67,9 +67,9 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    const commandType = parts[0]; // FIXED: Restored bracket index 0
-    const targetIdx = parseInt(parts[1]); // FIXED: Restored bracket index 1
-    const msgId = parts[2]; // FIXED: Restored bracket index 2
+    const commandType = parts[0]; // FIX: Corrected missing array brackets and index keys
+    const targetIdx = parseInt(parts[1]); // FIX: Corrected missing array brackets and index keys
+    const msgId = parts[2]; // FIX: Corrected missing array brackets and index keys
     
     const session = activeSessions.get(msgId);
     if (!session) return;
@@ -117,8 +117,8 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() && interaction.customId.startsWith('target-')) {
     const customId = interaction.customId;
     const parts = customId.split('-');
-    const targetIdx = parseInt(parts[1]); // FIXED: Restored bracket index 1
-    const msgId = parts[2]; // FIXED: Restored bracket index 2
+    const targetIdx = parseInt(parts[1]); // FIX: Corrected missing array brackets and index keys
+    const msgId = parts[2]; // FIX: Corrected missing array brackets and index keys
     
     const session = activeSessions.get(msgId);
     if (!session) return;
@@ -228,4 +228,3 @@ async function buildCanvasBuffer(session) {
   const ctx = canvas.getContext('2d');
   
   // Pitch Background Paint Stripes
-  ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
