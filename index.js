@@ -1,5 +1,5 @@
 const http = require('http'); 
-const { Canvas, loadImage } = require('skia-canvas'); // FIXED: Swapped engine parameters to lightweight Skia
+const pureimage = require('pureimage'); // SWAPPED: Native JavaScript image engine with zero Linux bindings
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
 // 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
@@ -40,7 +40,6 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
     const msg = await interaction.fetchReply();
     
-    // Distribute base starter nodes down the pitch grid layout
     const roster = Array.from({ length: size }, (_, i) => ({
       index: i,
       name: 'Unassigned',
@@ -67,7 +66,6 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    // SAFE ARRAY MAPPING (Guarantees bracket execution limits)
     const commandType = parts[0]; 
     const targetIdx = parseInt(parts[1]); 
     const msgId = parts[2]; 
@@ -105,7 +103,6 @@ client.on('interactionCreate', async (interaction) => {
     session.roster[session.activeSlotIdx].name = chosenUser.username;
     session.roster[session.activeSlotIdx].avatar = chosenUser.displayAvatarURL({ extension: 'png', size: 128 });
 
-    // Auto-advance cursor tracking step index smoothly forward
     session.activeSlotIdx = (session.activeSlotIdx + 1) % session.total;
 
     await interaction.deferUpdate();
@@ -129,7 +126,7 @@ client.on('interactionCreate', async (interaction) => {
     return renderFieldGraphic(interaction, msgId, false);
   }
 
-  // FLOW 5: LOCK SYSTEMS AND SEND COMBINED CANVAS IMAGE
+  // FLOW 5: LOCK SYSTEMS AND SEND COMBINED IMAGE
   if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
     const customId = interaction.customId;
     const msgId = customId.split('-').pop();
@@ -178,7 +175,6 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
 
   const interactiveComponents = [];
 
-  // 1. Dropdown Picker Row
   const menuRow = new ActionRowBuilder().addComponents(
     new UserSelectMenuBuilder()
       .setCustomId('pick-' + msgId)
@@ -186,7 +182,6 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   );
   interactiveComponents.push(menuRow);
 
-  // 2. Multi-Row Split Array Logic for Target Selector Navigation Rows (Prevents row size > 5 crashes)
   let currentNavRow = new ActionRowBuilder();
   for (let i = 0; i < session.total; i++) {
     if (i > 0 && i % 5 === 0) {
@@ -202,7 +197,6 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   }
   interactiveComponents.push(currentNavRow);
 
-  // 3. Direction Nudge Movement Pad Row
   const controlPadRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('left-' + session.activeSlotIdx + '-' + msgId).setLabel('◀ Move Left').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('up-' + session.activeSlotIdx + '-' + msgId).setLabel('▲ Move Up').setStyle(ButtonStyle.Secondary),
@@ -211,7 +205,6 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   );
   interactiveComponents.push(controlPadRow);
 
-  // 4. Lock & Confirm Row
   const actionRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('confirm-' + msgId).setLabel('🔒 Lock & Publish Final Lineup').setStyle(ButtonStyle.Primary)
   );
@@ -231,10 +224,18 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
 }
 
 // GRAPHICS ENGINE COMPILATION CORE MODULE
-async function buildCanvasBuffer(session) {
-  const width = 900; const height = 1150; 
-  const canvas = new Canvas(width, height);
-  const ctx = canvas.getContext('2d');
-  
-  // Pitch Background Paint Stripes
-  ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
+function buildCanvasBuffer(session) {
+  return new Promise((resolve) => {
+    const width = 900; const height = 1150; 
+    const canvas = pureimage.make(width, height);
+    const ctx = canvas.getContext('2d');
+    
+    // Pitch Background Paint Stripes
+    ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 230) { ctx.fillRect(0, i, width, 115); }
+    
+    // Outer Line Boundaries & Boxes
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, width - 80, height - 80);
+    ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
+    
+    // Fallback vector drawing methods for native compatibility layers
