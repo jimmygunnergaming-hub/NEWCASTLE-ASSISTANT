@@ -1,5 +1,5 @@
 const http = require('http'); 
-const { createCanvas, loadImage } = require('@napi-rs/canvas'); 
+const { Canvas, loadImage } = require('skia-canvas'); // FIXED: Swapped engine parameters to lightweight Skia
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
 // 1. LIGHTWEIGHT PORT LISTENER (Satisfies web hosting health checks)
@@ -44,7 +44,7 @@ client.on('interactionCreate', async (interaction) => {
     const roster = Array.from({ length: size }, (_, i) => ({
       index: i,
       name: 'Unassigned',
-      role: i === 0 ? 'GK' : 'POS #' + (i + 1), // Unified key reference syntax profile cleanly
+      role: i === 0 ? 'GK' : 'POS #' + (i + 1),
       avatar: '',
       pctX: 50,
       pctY: 85 - (i * 7)
@@ -67,7 +67,7 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    // FIXED: Universal index position array mappings that run on all older/newer Node versions flawlessly
+    // SAFE ARRAY MAPPING (Guarantees bracket execution limits)
     const commandType = parts[0]; 
     const targetIdx = parseInt(parts[1]); 
     const msgId = parts[2]; 
@@ -117,7 +117,6 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    // FIXED: Alternate version deployment fallback structures
     const targetIdx = parseInt(parts[1]); 
     const msgId = parts[2]; 
     
@@ -187,7 +186,7 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
   );
   interactiveComponents.push(menuRow);
 
-  // 2. FIXED: Multi-Row Split Array Logic for Target Selector Navigation Rows (Prevents row size > 5 crashes)
+  // 2. Multi-Row Split Array Logic for Target Selector Navigation Rows (Prevents row size > 5 crashes)
   let currentNavRow = new ActionRowBuilder();
   for (let i = 0; i < session.total; i++) {
     if (i > 0 && i % 5 === 0) {
@@ -234,7 +233,8 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
 // GRAPHICS ENGINE COMPILATION CORE MODULE
 async function buildCanvasBuffer(session) {
   const width = 900; const height = 1150; 
-  const canvas = createCanvas(width, height);
+  const canvas = new Canvas(width, height);
   const ctx = canvas.getContext('2d');
   
   // Pitch Background Paint Stripes
+  ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
