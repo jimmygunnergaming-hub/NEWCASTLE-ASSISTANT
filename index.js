@@ -26,7 +26,7 @@ client.on('interactionCreate', async (interaction) => {
   // SECURITY AUTHORIZATION GATE
   if (interaction.isButton() || interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
-    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const msgId = customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ content: '❌ Only the coach who started this lineup command can modify nodes.', ephemeral: true });
@@ -65,13 +65,14 @@ client.on('interactionCreate', async (interaction) => {
   // FLOW 2: NUDGE BUTTON CLICKED (Up, Down, Left, Right movement controls)
   if (interaction.isButton() && (interaction.customId.startsWith('up-') || interaction.customId.startsWith('down-') || interaction.customId.startsWith('left-') || interaction.customId.startsWith('right-'))) {
     const customId = interaction.customId;
-    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const parts = customId.split('-');
+    
+    const commandType = parts[0];
+    const targetIdx = parseInt(parts[1]);
+    const msgId = parts[2];
+    
     const session = activeSessions.get(msgId);
     if (!session) return;
-
-    // Parse button instruction configurations safely
-    const commandType = customId.split('-')[0];
-    const targetIdx = parseInt(customId.split('-')[1]);
 
     let deltaX = 0;
     let deltaY = 0;
@@ -94,7 +95,7 @@ client.on('interactionCreate', async (interaction) => {
   // FLOW 3: SELECTION DROPDOWN SLOT CHOSEN
   if (interaction.isUserSelectMenu() && interaction.customId.startsWith('pick-')) {
     const customId = interaction.customId;
-    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const msgId = customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -115,11 +116,14 @@ client.on('interactionCreate', async (interaction) => {
   // FLOW 4: ACTIVE TARGET NODE ROTATION CLICKED
   if (interaction.isButton() && interaction.customId.startsWith('target-')) {
     const customId = interaction.customId;
-    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const parts = customId.split('-');
+    const targetIdx = parseInt(parts[1]);
+    const msgId = parts[2];
+    
     const session = activeSessions.get(msgId);
     if (!session) return;
 
-    session.activeSlotIdx = parseInt(customId.split('-')[1]);
+    session.activeSlotIdx = targetIdx;
 
     await interaction.deferUpdate();
     return renderFieldGraphic(interaction, msgId, false);
@@ -128,7 +132,7 @@ client.on('interactionCreate', async (interaction) => {
   // FLOW 5: LOCK & PUBLICLY PUBLISH TEAM SHEET EMBED
   if (interaction.isButton() && interaction.customId.startsWith('confirm-')) {
     const customId = interaction.customId;
-    const msgId = customId.substring(customId.lastIndexOf('-') + 1);
+    const msgId = customId.split('-').pop();
     const session = activeSessions.get(msgId);
     if (!session) return;
 
@@ -179,16 +183,17 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
       .setPlaceholder(`👉 Select player for Target: ${activeSlot.role}`)
   );
 
-  // Component Row 2: Target index cycle switch button row selector
+  // Component Row 2: Target index cycle switch button row selector (Slices up to 5 buttons max to follow Discord limits)
   const navRow = new ActionRowBuilder();
-  session.roster.slice(0, 5).forEach((slot, i) => {
+  const maxButtons = Math.min(5, session.total);
+  for (let i = 0; i < maxButtons; i++) {
     navRow.addComponents(
       new ButtonBuilder()
         .setCustomId(`target-${i}-${msgId}`)
-        .setLabel(slot.role)
+        .setLabel(session.roster[i].role)
         .setStyle(i === session.activeSlotIdx ? ButtonStyle.Success : ButtonStyle.Secondary)
     );
-  });
+  }
 
   // Component Row 3: Nudge direction movement pad configurations
   const controlPadRow = new ActionRowBuilder().addComponents(
@@ -203,13 +208,10 @@ async function renderFieldGraphic(interaction, msgId, isFollowUp) {
     new ButtonBuilder().setCustomId(`confirm-${msgId}`).setLabel('🔒 Lock & Publish Final Lineup').setStyle(ButtonStyle.Primary)
   );
 
-  // Dynamic component distribution array mapping profiles cleanly
-  const interactiveComponents = [menuRow, navRow, controlPadRow, actionRow];
-
   const payload = {
     content: `🏟️ **Newcastle Tactical Pitch Setup Console (${session.total}v${session.total})**\nCurrently Editing: **[${activeSlot.role}]** (Assigned: ${activeSlot.name})\n\nUse the direction buttons below to nudge this position element across the pitch layout framework.`,
     files: [attachment],
-    components: interactiveComponents
+    components: [menuRow, navRow, controlPadRow, actionRow]
   };
 
   if (isFollowUp) {
@@ -229,3 +231,4 @@ async function buildCanvasBuffer(session) {
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 230) { ctx.fillRect(0, i, width, 115); }
   
+  // Outer Line Boundaries & Boxes
