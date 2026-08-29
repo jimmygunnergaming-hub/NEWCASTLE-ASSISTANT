@@ -82,7 +82,6 @@
     let activeEditIdx = null;
     let posModal, pickerModal;
 
-    // Fetch live data safely from backend API
     const sessionId = window.location.pathname.split('/').pop();
     fetch('/api/session/' + sessionId)
       .then(res => res.json())
@@ -108,16 +107,15 @@
         node.id = 'node_' + idx;
         node.style.left = pctX + '%';
         node.style.top = pctY + '%';
-        node.onmousedown = (e) => startNodeDrag(e, idx);
-        node.onclick = () => handleNodeClick(idx);
+        
+        node.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
+        node.addEventListener('click', () => handleNodeClick(idx));
 
-        node.innerHTML = `
-          <div id="avatar_box_${idx}" class="avatar-circle">⚪</div>
-          <div class="label-container">
-            <div class="pos-name" id="lbl_pos_${idx}">${player.posLabel}</div>
-            <div class="usr-name" id="lbl_usr_${idx}">Unassigned</div>
-          </div>
-        `;
+        node.innerHTML = '<div id="avatar_box_' + idx + '" class="avatar-circle">⚪</div>' +
+          '<div class="label-container">' +
+            '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>' +
+            '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>' +
+          '</div>';
         container.appendChild(node);
       });
     }
@@ -177,7 +175,7 @@
       
       document.getElementById('avatar_box_' + activeEditIdx).innerHTML = '<img src="' + avatar + '" />';
       document.getElementById('lbl_usr_' + activeEditIdx).innerText = name;
-      sessionData.roster[activeEditIdx].assignedUser = { name, avatar };
+      sessionData.roster[activeEditIdx].assignedUser = { name: name, avatar: avatar };
     }
 
     function saveAndPostToDiscord() {
