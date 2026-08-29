@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const path = require('path');
-const https = require('https'); // Required to proxy secure images safely
+const https = require('https');
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 
 app.use(express.json({ limit: '50mb' }));
@@ -19,14 +19,13 @@ app.get('/api/session/:sessionId', (req, res) => {
   res.json(session);
 });
 
-// 🛡️ IMAGE PROXY SERVER (Fixes the button freeze bug)
 app.get('/api/proxy-avatar', (req, res) => {
   const avatarUrl = req.query.url;
   if (!avatarUrl) return res.sendStatus(400);
 
   https.get(avatarUrl, (proxyRes) => {
     res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/png');
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Safe bypass lock
+    res.setHeader('Access-Control-Allow-Origin', '*');
     proxyRes.pipe(res);
   }).on('error', () => res.sendStatus(500));
 });
@@ -100,6 +99,18 @@ client.once('ready', () => {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
+  // Extract the live server domain URL cleanly without guess tracking traps
+  let baseUrl = process.env.RENDER_EXTERNAL_URL;
+  if (!baseUrl) {
+    // Rebuild the link dynamically if the environment variables are obscured
+    baseUrl = 'https://' + interaction.guild.name.toLowerCase().replace(/[^a-z0-9]/g, '') + '.onrender.com';
+  }
+  
+  // Hard-correct alternative: if you look at your dashboard url, change this link to your exact sub-string if it drops out
+  if (baseUrl.includes('localhost') || !baseUrl) {
+    baseUrl = 'https://onrender.com';
+  }
+
   if (interaction.commandName === 'lineup') {
     const totalPlayers = interaction.options.getInteger('size');
     const sessionId = Math.random().toString(36).substring(2, 11);
@@ -124,8 +135,7 @@ client.on('interactionCreate', async interaction => {
       }))
     });
 
-    const appUrl = 'https://onrender.com';
-    const dashboardLink = appUrl + '/pitch/' + sessionId;
+    const dashboardLink = baseUrl + '/pitch/' + sessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setLabel('🏟️ Open Interactive Football Pitch').setURL(dashboardLink).setStyle(ButtonStyle.Link)
@@ -143,8 +153,7 @@ client.on('interactionCreate', async interaction => {
       return interaction.reply({ content: '❌ No active or recent layout records found to update.', ephemeral: true });
     }
 
-    const appUrl = 'https://onrender.com';
-    const dashboardLink = appUrl + '/pitch/' + mostRecentSessionId;
+    const dashboardLink = baseUrl + '/pitch/' + mostRecentSessionId;
 
     const linkRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setLabel('📝 Edit Most Recent Lineup Workspace').setURL(dashboardLink).setStyle(ButtonStyle.Link)
