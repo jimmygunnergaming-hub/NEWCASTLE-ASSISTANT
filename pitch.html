@@ -6,8 +6,9 @@
   <link href="https://jsdelivr.net" rel="stylesheet">
   <style>
     body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 15px; }
+    .pitch-container-wrapper { width: 100%; max-width: 650px; margin: 0 auto; position: relative; }
     .pitch-environment { 
-      position: relative; width: 100%; max-width: 650px; height: 85vh; margin: 15px auto;
+      position: relative; width: 100%; height: 85vh;
       background: #27ae60;
       background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
       background-size: 100% 10%;
@@ -35,20 +36,26 @@
     .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .member-card:hover { background: #f1c40f; color: #000; transform: translateY(-2px); }
   </style>
+  <!-- Load HTML to Image library to convert the web element into an image file -->
+  <script src="https://cloudflare.com"></script>
 </head>
 <body>
   <h3>⚽ NEWCASTLE STRATEGY BOARD</h3>
   <p class="text-muted">Drag circles anywhere to position them. Click a circle to name its position and assign players!</p>
   
-  <div class="pitch-environment" id="pitch">
-    <div class="midfield-line"></div>
-    <div class="center-circle"></div>
-    <div class="penalty-box-top"></div>
-    <div class="penalty-box-bot"></div>
-    <div id="nodes-container"></div>
+  <div class="pitch-container-wrapper">
+    <div class="pitch-environment" id="pitch">
+      <div class="midfield-line"></div>
+      <div class="center-circle"></div>
+      <div class="penalty-box-top"></div>
+      <div class="penalty-box-bot"></div>
+      <div id="nodes-container"></div>
+    </div>
   </div>
 
-  <button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Save & Send to Discord</button>
+  <div class="mt-3">
+    <button class="btn btn-success btn-lg px-5 shadow mb-4" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
+  </div>
 
   <!-- Step 1: Position Name Form Popup -->
   <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -179,11 +186,23 @@
     }
 
     function saveAndPostToDiscord() {
-      fetch('/api/save-lineup/' + sessionData.id, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roster: sessionData.roster })
-      }).then(() => alert('Lineup successfully published! You can close this tab and check Discord.'));
+      const pitchElement = document.getElementById('pitch');
+      
+      // Render the web visual into a high-res image image layer blob layout 
+      htmlToImage.toPng(pitchElement, { cacheBust: true })
+        .then(function (dataUrl) {
+          fetch('/api/save-lineup/' + sessionData.id, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              roster: sessionData.roster,
+              imageBlob: dataUrl
+            })
+          }).then(() => alert('Lineup image pushed successfully to your targeted team channel logs!'));
+        })
+        .catch(function (error) {
+          console.error('Snapshot render capture operation error:', error);
+        });
     }
   </script>
 </body>
