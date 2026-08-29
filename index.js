@@ -2,7 +2,7 @@ const http = require('http');
 const { createCanvas, loadImage } = require('canvas');
 const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
-// Lightweight port listener to keep Render happy and free
+// Lightweight port listener to satisfy hosting platform live web requirements
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Newcastle Bot Active');
@@ -26,7 +26,6 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const size = interaction.options.getInteger('size');
     
-    // Defer the reply to give the heavy canvas engine a few seconds to render
     const msg = await interaction.reply({ content: '🏟️ Initializing high-quality pitch layout...', fetchReply: true });
     
     activeSessions.set(msg.id, { 
@@ -51,7 +50,7 @@ client.on('interactionCreate', async (interaction) => {
     session.roster.push({ 
       name: user.username, 
       role: positionTag,
-      avatar: user.displayAvatarURL({ extension: 'png', size: 256 }) // High-resolution avatars
+      avatar: user.displayAvatarURL({ extension: 'png', size: 256 })
     });
 
     session.currentIndex++;
@@ -66,41 +65,33 @@ client.on('interactionCreate', async (interaction) => {
 
 async function generatePitch(interaction, msgId, isEdit) {
   const session = activeSessions.get(msgId);
+  if (!session) return;
   
-  // High-Quality Canvas Dimensions
   const width = 800;
   const height = 1000;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
-  // Draw Realistic Vibrant Green Pitch Background
   ctx.fillStyle = '#27ae60';
   ctx.fillRect(0, 0, width, height);
 
-  // Draw Alternating Grass Panels
   ctx.fillStyle = '#219653';
   for (let i = 0; i < height; i += 200) {
     ctx.fillRect(0, i, width, 100);
   }
 
-  // Draw Field Markings
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 6;
-  ctx.strokeRect(40, 40, width - 80, height - 80); // Field outline
+  ctx.strokeRect(40, 40, width - 80, height - 80);
   
-  // Midfield Line
   ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
-  
-  // Center Circle
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
 
-  // Penalty Boxes
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160);
   ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  // Dynamic Layout Coordinate Generation
   const coords = [];
-  coords.push({ x: width / 2, y: height - 100 }); // Lock Goalkeeper at bottom base line
+  coords.push({ x: width / 2, y: height - 100 });
 
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
@@ -123,13 +114,11 @@ async function generatePitch(interaction, msgId, isEdit) {
     }
   }
 
-  // Render Circles and Data text Labels
   for (let i = 0; i < session.total; i++) {
     const slot = session.roster[i];
-    const pos = coords[i];
+    const pos = coords[i] || { x: width / 2, y: height / 2 };
 
     if (slot) {
-      // Draw User Avatar Picture Inside Circle
       try {
         const img = await loadImage(slot.avatar);
         ctx.save();
@@ -145,31 +134,25 @@ async function generatePitch(interaction, msgId, isEdit) {
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.fill();
       }
     } else {
-      // Draw Placeholder Grey Circle Dot
       ctx.fillStyle = '#7f8c8d';
       ctx.beginPath(); ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Color active pick indicator gold
       if (i === session.currentIndex) {
         ctx.fillStyle = '#f1c40f';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2); ctx.fill();
       }
     }
 
-    // Paint Text Labels Underneath
     ctx.textAlign = 'center';
-    
-    // 1. Position Name Tag First
-    ctx.fillStyle = '#f1c40f'; // Gold text layout for position
+    ctx.fillStyle = '#f1c40f';
     ctx.font = 'bold 15px Arial';
     const labelText = slot ? slot.role : `SLOT #${i + 1}`;
     ctx.fillText(labelText, pos.x, pos.y + 65);
     
-    // 2. Player Username Tag Directly Below
-    ctx.fillStyle = '#ffffff'; // White text layout for username
+    ctx.fillStyle = '#ffffff';
     ctx.font = '13px Arial';
     const nameText = slot ? slot.name : 'Unassigned';
     ctx.fillText(nameText, pos.x, pos.y + 85);
@@ -201,7 +184,6 @@ async function finishLineup(interaction, msgId) {
 
   await interaction.deferUpdate();
 
-  // Final image generation compilation pass
   const width = 800; 
   const height = 1000;
   const canvas = createCanvas(width, height);
@@ -214,7 +196,9 @@ async function finishLineup(interaction, msgId) {
   ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
 
-  const coords = [{ x: width / 2, y: height - 100 }];
+  const coords = [];
+  coords.push({ x: width / 2, y: height - 100 });
+
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
     let rows = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
@@ -233,10 +217,9 @@ async function finishLineup(interaction, msgId) {
     }
   }
 
-  // Render players on the final clean canvas wrap pass
   for (let i = 0; i < session.total; i++) {
     const slot = session.roster[i];
-    const pos = coords[i];
+    const pos = coords[i] || { x: width / 2, y: height / 2 };
 
     if (slot) {
       try {
@@ -273,3 +256,22 @@ async function finishLineup(interaction, msgId) {
     .setImage('attachment://finalized-squad-lineup.png');
 
   session.roster.forEach((slot) => {
+    destinationEmbed.addFields({ name: `Position: ${slot.role}`, value: `👤 **${slot.name}**`, inline: true });
+  });
+
+  try {
+    const targetChannel = await client.channels.fetch('1542615988963385403');
+    await targetChannel.send({ 
+      content: `✅ **New squad sheet locked and published by <@${session.creatorId}>!**`, 
+      embeds: [destinationEmbed],
+      files: [finalAttachment] 
+    });
+  } catch (err) { 
+    console.error('Discord channel routing delivery error:', err); 
+  }
+
+  await interaction.editReply({ content: '🔒 **Lineup sheet compilation completed and logged successfully!**', components: [], files: [] });
+  return activeSessions.delete(msgId);
+}
+
+client.login(process.env.TOKEN);
