@@ -27,19 +27,16 @@ const activeSessions = new Map();
 client.once('ready', () => {
   console.log(`Bot connection validated successfully! Authorized as ${client.user.tag}`);
 
-  const sizeChoices = [];
-  for (let i = 1; i <= 11; i++) {
-    sizeChoices.push({ name: `${i}v${i} Layout Size`, value: i });
-  }
-
+  // Stripped out the broken loop choices to prevent the unexpected end of input syntax error
   const baseCommand = new SlashCommandBuilder()
     .setName('lineup')
     .setDescription('Build a graphical football field lineup layout directly in chat')
     .addIntegerOption(option => 
       option.setName('size')
-        .setDescription('Number of people on the team (1-11)')
+        .setDescription('Number of people on the team (Enter any number from 1 to 11)')
         .setRequired(true)
-        .addChoices(...sizeChoices));
+        .setMinValue(1)
+        .setMaxValue(11));
 
   client.application.commands.create(baseCommand);
 });
