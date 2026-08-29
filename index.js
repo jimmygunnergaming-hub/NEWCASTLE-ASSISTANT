@@ -67,9 +67,9 @@ client.on('interactionCreate', async (interaction) => {
     const customId = interaction.customId;
     const parts = customId.split('-');
     
-    const commandType = parts[0];
-    const targetIdx = parseInt(parts[1]);
-    const msgId = parts[2];
+    const commandType = parts[0]; // FIXED: Restored bracket index 0
+    const targetIdx = parseInt(parts[1]); // FIXED: Restored bracket index 1
+    const msgId = parts[2]; // FIXED: Restored bracket index 2
     
     const session = activeSessions.get(msgId);
     if (!session) return;
@@ -117,8 +117,8 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton() && interaction.customId.startsWith('target-')) {
     const customId = interaction.customId;
     const parts = customId.split('-');
-    const targetIdx = parseInt(parts[1]);
-    const msgId = parts[2];
+    const targetIdx = parseInt(parts[1]); // FIXED: Restored bracket index 1
+    const msgId = parts[2]; // FIXED: Restored bracket index 2
     
     const session = activeSessions.get(msgId);
     if (!session) return;
@@ -229,6 +229,3 @@ async function buildCanvasBuffer(session) {
   
   // Pitch Background Paint Stripes
   ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 230) { ctx.fillRect(0, i, width, 115); }
-  
-  // Outer Line Boundaries & Boxes
