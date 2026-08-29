@@ -5,40 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://jsdelivr.net" rel="stylesheet">
   <style>
-    body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 10px; user-select: none; }
-    .top-controls { margin: 10px auto; max-width: 850px; display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #333; }
-    .pitch-container-wrapper { width: 100%; max-width: 850px; margin: 0 auto; position: relative; }
+    body { background: #111; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; padding: 20px; user-select: none; }
+    .top-controls { margin: 10px auto; max-width: 900px; display: flex; justify-content: space-between; align-items: center; background: #222; padding: 15px 25px; border-radius: 8px; border: 1px solid #333; }
+    .pitch-container-wrapper { width: 100%; max-width: 900px; margin: 0 auto; position: relative; }
     .pitch-environment { 
-      position: relative; width: 100%; height: 85vh;
+      position: relative; width: 100%; height: 1150px;
       background: #27ae60;
-      background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
+      background-image: linear-gradient(rgba(255,255,255,0.06) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.06) 2px, transparent 2px);
       background-size: 100% 10%;
-      border: 5px solid #fff; border-radius: 12px;
+      border: 6px solid #fff; border-radius: 12px;
       box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden;
     }
-    .midfield-line { position: absolute; top: 50%; left: 0; width: 100%; height: 5px; background: #fff; }
-    .center-circle { position: absolute; top: 50%; left: 50%; width: 160px; height: 160px; border: 5px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
-    .penalty-box-top { position: absolute; top: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-top: none; }
-    .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 320px; height: 140px; border: 5px solid #fff; transform: translateX(-50%); border-bottom: none; }
-    .player-node { position: absolute; width: 85px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }
-    .drag-handle { width: 75px; height: 75px; background: rgba(0,0,0,0.6); border: 2px dashed #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; transition: background 0.2s; }
+    .midfield-line { position: absolute; top: 50%; left: 0; width: 100%; height: 6px; background: #fff; transform: translateY(-50%); }
+    .center-circle { position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; border: 6px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+    .penalty-box-top { position: absolute; top: 0; left: 50%; width: 400px; height: 180px; border: 6px solid #fff; transform: translateX(-50%); border-top: none; }
+    .penalty-box-bot { position: absolute; bottom: 0; left: 50%; width: 400px; height: 180px; border: 6px solid #fff; transform: translateX(-50%); border-bottom: none; }
+    
+    .player-node { position: absolute; width: 140px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; transform: translate(-50%, -40%); z-index: 10; }
+    .drag-handle { width: 85px; height: 85px; background: rgba(0,0,0,0.75); border: 2px dashed #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; transition: background 0.2s, border-color 0.2s; }
     .drag-handle:hover { background: rgba(241, 196, 15, 0.4); border-color: #f1c40f; }
-    .add-text { font-size: 10px; font-weight: bold; color: #fff; pointer-events: none; text-align: center; }
-    .player-node img { width: 75px; height: 75px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; pointer-events: none; box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
-    .label-container { position: absolute; bottom: -45px; width: 120px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 4px; padding: 2px; border: 1px solid #444; cursor: pointer; text-align: center; }
-    .pos-name { color: #f1c40f; text-transform: uppercase; pointer-events: none; } 
-    .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+    .add-text { font-size: 10px; font-weight: bold; color: #fff; pointer-events: none; text-align: center; line-height: 1.2; }
+    .player-node img { width: 85px; height: 85px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; pointer-events: none; box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
+    
+    .label-container { width: 130px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.85); border-radius: 6px; padding: 4px; border: 1px solid #444; text-align: center; margin-top: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .pos-name-text { color: #f1c40f; text-transform: uppercase; cursor: text; min-height: 18px; display: inline-block; width: 100%; }
+    .pos-edit-input { width: 100%; background: #333; color: #f1c40f; border: 1px solid #f1c40f; border-radius: 3px; font-size: 11px; font-weight: bold; text-align: center; text-transform: uppercase; padding: 1px; outline: none; }
+    .usr-name { color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 1px; }
+    
+    .pad-controls { display: flex; flex-direction: column; align-items: center; background: rgba(20,20,20,0.9); border: 1px solid #555; border-radius: 6px; padding: 3px; margin-top: 4px; gap: 2px; width: 80px; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+    .pad-row { display: flex; justify-content: center; gap: 4px; width: 100%; }
+    .btn-pad { width: 22px; height: 22px; padding: 0; font-size: 11px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold; line-height: 1; }
+    
     .modal-content { background: #1c1c1c; color: #fff; border: 2px solid #2ecc71; border-radius: 12px; }
-    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; margin-bottom: 5px; border: 1px solid #34495e; }
+    .member-card { background: #2c3e50; border-radius: 8px; cursor: pointer; transition: 0.2s; padding: 10px; border: 1px solid #34495e; display: flex; align-items: center; gap: 10px; text-align: left; }
+    .member-card img { width: 35px; height: 35px; border-radius: 50%; }
     .member-card:hover { background: #2ecc71; color: #000; transform: translateY(-2px); font-weight: bold; border-color: #fff; }
+    #lockout-screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 10000; align-items: center; justify-content: center; flex-direction: column; }
   </style>
-  <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
+  <!-- STRICT LOCKOUT OVERLAY FOR UNAUTHORIZED USERS -->
+  <div id="lockout-screen">
+    <h1 style="color: #e74c3c; font-weight: bold; margin-bottom: 15px;">🔒 Unauthorized Access Lockout</h1>
+    <p style="font-size: 18px; max-width: 600px; text-align: center; color: #ccc;">
+      This live tactical workspace dashboard can only be modified by the team coach who triggered the lineup generation command. 
+      The finalized team sheet graphics will be published directly into the logs channel once confirmed.
+    </p>
+  </div>
+
   <div class="top-controls">
-    <h4 style="margin:0; color:#2ecc71; font-weight:bold;">🏟️ NEWCASTLE LINEUP WORKSPACE</h4>
-    <button class="btn btn-success btn-md px-4 shadow font-weight-bold" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
+    <h4 style="margin:0; color:#2ecc71; font-weight:bold; letter-spacing: 0.5px;">🏟️ NEWCASTLE TEAM MANAGER CONSOLE</h4>
+    <button id="finish-btn" class="btn btn-success btn-md px-4 shadow font-weight-bold" onclick="saveAndPostToDiscord()">Finish Lineup & Send Image 🚀</button>
   </div>
   
   <div class="pitch-container-wrapper">
@@ -51,23 +69,9 @@
     </div>
   </div>
 
-  <div class="modal fade" id="positionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-color: #f1c40f;">
-        <div class="modal-header border-secondary"><h5 class="modal-title">Set Position Name</h5></div>
-        <div class="modal-body text-start">
-          <label class="form-label text-muted">What position is this slot? (e.g. GK, CB, Striker, LW)</label>
-          <input type="text" class="form-control bg-dark text-white border-secondary" id="posNameInput" placeholder="Striker">
-        </div>
-        <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-warning w-100" font-weight-bold" onclick="submitPositionName()">Next: Choose Player ➡️</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- PLAYER SELECTION ROSTER MODAL -->
   <div class="modal fade" id="pickerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header border-secondary"><h5 class="modal-title">Select Live Server Member</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <div class="modal-body"><div class="row g-2" id="memberListContainer"></div></div>
@@ -77,20 +81,31 @@
 
   <script src="https://jsdelivr.net"></script>
   <script>
-    let sessionData = {};
+    let sessionData = { roster: [], serverMembers: [], creatorId: "" };
     let activeEditIdx = null;
-    let posModal, pickerModal;
+    let pickerModal;
+    let currentUserId = "";
 
     const sessionId = window.location.pathname.split('/').pop();
+
+    // Pull current user id mapping straight from window URL params if present
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('uid') || "";
+
     fetch('/api/session/' + sessionId)
       .then(res => res.json())
       .then(data => {
         sessionData = data;
+        
+        // Strict runtime gate evaluation block
+        if (currentUserId !== sessionData.creatorId) {
+          document.getElementById('lockout-screen').style.display = 'flex';
+          return;
+        }
         renderNodes();
       });
 
     document.addEventListener("DOMContentLoaded", () => {
-      posModal = new bootstrap.Modal(document.getElementById('positionModal'));
       pickerModal = new bootstrap.Modal(document.getElementById('pickerModal'));
     });
 
@@ -99,97 +114,55 @@
       container.innerHTML = '';
       
       sessionData.roster.forEach((player, idx) => {
-        let pctX = 50;
-        let pctY = 75 - (idx * 15);
-
-        if (idx === 0) { pctX = 50; pctY = 90; } 
-        else if (idx === 1) { pctX = 25; pctY = 70; }
-        else if (idx === 2) { pctX = 75; pctY = 70; }
-        else if (idx === 3) { pctX = 50; pctY = 65; }
-        else if (idx === 4) { pctX = 20; pctY = 45; }
-        else if (idx === 5) { pctX = 80; pctY = 45; }
-        else if (idx === 6) { pctX = 50; pctY = 40; }
-        else if (idx === 7) { pctX = 35; pctY = 25; }
-        else if (idx === 8) { pctX = 65; pctY = 25; }
-        else if (idx === 9) { pctX = 20; pctY = 15; }
-        else if (idx === 10) { pctX = 80; pctY = 15; }
-
         const node = document.createElement('div');
         node.className = 'player-node';
         node.id = 'node_' + idx;
-        node.style.left = pctX + '%';
-        node.style.top = pctY + '%';
+        node.style.left = player.pctX + '%';
+        node.style.top = player.pctY + '%';
 
-        const handle = document.createElement('div');
-        handle.className = 'drag-handle';
-        handle.id = 'handle_' + idx;
-        handle.innerHTML = '<span class="add-text">➕ ADD<br>PLAYER</span>';
-        
-        handle.addEventListener('mousedown', (e) => startNodeDrag(e, idx));
-        handle.addEventListener('click', (e) => {
-          if (!node.classList.contains('dragging')) {
-            handleNodeClick(idx);
-          }
-        });
+        let innerGraphic = `<div class="drag-handle" id="handle_${idx}" onclick="openRosterPicker(${idx})"><span class="add-text">➕ ADD<br>PLAYER</span></div>`;
+        if (player.avatar && player.avatar !== '') {
+          innerGraphic = `<img src="${player.avatar}" id="handle_${idx}" onclick="openRosterPicker(${idx})">`;
+        }
 
-        const labelContainer = document.createElement('div');
-        labelContainer.className = 'label-container';
-        labelContainer.innerHTML = '<div class="pos-name" id="lbl_pos_' + idx + '">' + player.posLabel + '</div>' +
-                                    '<div class="usr-name" id="lbl_usr_' + idx + '">Unassigned</div>';
-        
-        labelContainer.addEventListener('click', (e) => {
-          e.stopPropagation();
-          handleNodeClick(idx);
-        });
+        node.innerHTML = `
+          ${innerGraphic}
+          <div class="label-container">
+            <div class="pos-element" id="pos_container_${idx}">
+              <span class="pos-name-text" id="pos_text_${idx}" onclick="enableInlineTextEditing(${idx})">${player.role}</span>
+            </div>
+            <div class="usr-name" onclick="openRosterPicker(${idx})">${player.name}</div>
+          </div>
+          <div class="pad-controls">
+            <div class="pad-row">
+              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, -2)">▲</button>
+            </div>
+            <div class="pad-row">
+              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, -1.5, 0)">◀</button>
+              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 1.5, 0)">▶</button>
+            </div>
+            <div class="pad-row">
+              <button class="btn btn-secondary btn-pad" onclick="nudgeNode(${idx}, 0, 2)">▼</button>
+            </div>
+          </div>
+        `;
 
-        node.appendChild(handle);
-        node.appendChild(labelContainer);
         container.appendChild(node);
+        setupDragLogic(node, idx);
       });
     }
 
-    function startNodeDrag(e, idx) {
-      const node = document.getElementById('node_' + idx);
-      const pitch = document.getElementById('pitch');
-      
-      function onMouseMove(event) {
-        node.classList.add('dragging');
-        const rect = pitch.getBoundingClientRect();
-        let x = ((event.clientX - rect.left) / rect.width) * 100;
-        let y = ((event.clientY - rect.top) / rect.height) * 100;
-        if(x >= 5 && x <= 95) node.style.left = x + '%';
-        if(y >= 5 && y <= 95) node.style.top = y + '%';
-      }
-      
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', () => {
-        document.removeEventListener('mousemove', onMouseMove);
-        setTimeout(() => node.classList.remove('dragging'), 50);
-      }, {once: true});
-    }
+    function setupDragLogic(el, idx) {
+      const handle = document.getElementById('handle_' + idx);
+      let isDragging = false;
 
-    function handleNodeClick(idx) {
-      activeEditIdx = idx;
-      document.getElementById('posNameInput').value = sessionData.roster[idx].posLabel;
-      posModal.show();
-    }
+      handle.addEventListener('mousedown', startDrag);
+      handle.addEventListener('touchstart', startDrag, { passive: false });
 
-    function submitPositionName() {
-      const inputVal = document.getElementById('posNameInput').value.trim();
-      const finalPosName = inputVal || "POS #" + (activeEditIdx + 1);
-      
-      sessionData.roster[activeEditIdx].posLabel = finalPosName;
-      document.getElementById('lbl_pos_' + activeEditIdx).innerText = finalPosName;
-      
-      posModal.hide();
-      openPlayerPicker();
-    }
-
-    function openPlayerPicker() {
-      const container = document.getElementById('memberListContainer');
-      container.innerHTML = '';
-      
-      sessionData.serverMembers.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'col-12 member-card d-flex align-items-center gap-3';
-        
+      function startDrag(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.classList.contains('pos-name-text')) return;
+        e.preventDefault();
+        isDragging = true;
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('touchmove', dragMove, { passive: false });
