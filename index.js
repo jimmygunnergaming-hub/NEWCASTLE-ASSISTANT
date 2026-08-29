@@ -12,12 +12,10 @@ const {
   EmbedBuilder 
 } = require('discord.js');
 
-// -------------------------------------------------------------
-// SECURE PORT HANDLER TO KEEP RENDER RUNNING FOR FREE
-// -------------------------------------------------------------
+// Lightweight port listener to satisfy Render's web hosting environment rules
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Newcastle Image Canvas Engine Online');
+  res.end('Newcastle Canvas Engine Active');
 }).listen(process.env.PORT || 3000);
 
 const client = new Client({ 
@@ -36,7 +34,7 @@ client.once('ready', () => {
 
   const baseCommand = new SlashCommandBuilder()
     .setName('lineup')
-    .setDescription('Build a real graphical football field lineup layout directly in chat')
+    .setDescription('Build a graphical football field lineup layout directly in chat')
     .addIntegerOption(option => 
       option.setName('size')
         .setDescription('Number of people on the team (1-11)')
@@ -47,18 +45,17 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  // Security validation check
   if (interaction.isButton() || interaction.isUserSelectMenu()) {
     const session = activeSessions.get(interaction.message.id);
     if (session && session.creatorId !== interaction.user.id) {
       return interaction.reply({ 
         content: '❌ Only the coach who started this lineup command can add players.', 
+        header: true,
         ephemeral: true 
       });
     }
   }
 
-  // 1. SLASH COMMAND INVOCATION
   if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const totalPlayers = interaction.options.getInteger('size');
     
@@ -78,7 +75,6 @@ client.on('interactionCreate', async interaction => {
     return generatePitchImage(interaction, msg.id, false);
   }
 
-  // 2. DROPDOWN PLAYER SELECTION HANDLER
   if (interaction.isUserSelectMenu() && interaction.customId === 'native_player_picker') {
     const msgId = interaction.message.id;
     const session = activeSessions.get(msgId);
@@ -96,7 +92,6 @@ client.on('interactionCreate', async interaction => {
 
     session.currentIndex++;
 
-    // Check if configuration loops match requested count total limits
     if (session.currentIndex >= session.total) {
       return publishFinalLineup(interaction, msgId);
     } else {
@@ -104,58 +99,45 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // 3. MANUAL CANCEL INTERACTION BUTTON
   if (interaction.isButton() && interaction.customId === 'cancel_lineup') {
     activeSessions.delete(interaction.message.id);
     return interaction.update({ content: '❌ Lineup builder session closed and cancelled.', files: [], components: [] });
   }
 });
 
-// -------------------------------------------------------------
-// GRAPHICAL RENDERING ENGINE (PITCH + PROPIX DRAWING)
-// -------------------------------------------------------------
 async function generatePitchImage(interaction, msgId, isEditStep) {
   const session = activeSessions.get(msgId);
-
-  // Set up standard high-res canvas sizes
   const width = 600;
   const height = 800;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
-  // Draw Realistic Green Football Pitch Background
   ctx.fillStyle = '#27ae60'; 
   ctx.fillRect(0, 0, width, height);
 
-  // Draw Darker Striped Cut Grass Panels
   ctx.fillStyle = '#219653';
   for (let i = 0; i < height; i += 160) {
     ctx.fillRect(0, i, width, 80);
   }
 
-  // Draw Pitch White Line Markings
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 5;
-  ctx.strokeRect(30, 30, width - 60, height - 60); // Boundaries
+  ctx.strokeRect(30, 30, width - 60, height - 60);
   
-  // Midfield Line
   ctx.beginPath();
   ctx.moveTo(30, height / 2);
   ctx.lineTo(width - 30, height / 2);
   ctx.stroke();
 
-  // Penalty Boxes
   ctx.strokeRect(width / 2 - 140, height - 160, 280, 130);
   ctx.strokeRect(width / 2 - 140, 30, 280, 130);
 
-  // Center Circle
   ctx.beginPath();
   ctx.arc(width / 2, height / 2, 75, 0, Math.PI * 2);
   ctx.stroke();
 
-  // DYNAMICALLY DISTRIBUTE TEAM COORDINATES (1 to 11)
   const coords = [];
-  coords.push({ x: width / 2, y: height - 80 }); // Always lock Goalkeeper at bottom base line
+  coords.push({ x: width / 2, y: height - 80 });
 
   if (session.total > 1) {
     const outfieldCount = session.total - 1;
@@ -178,13 +160,11 @@ async function generatePitchImage(interaction, msgId, isEditStep) {
     }
   }
 
-  // RENDER CURRENT ROSTER IMAGES ONTO CANVAS
   for (let i = 0; i < session.total; i++) {
     const slot = session.roster[i];
     const pos = coords[i];
 
     if (slot) {
-      // Draw Real Discord User Profile Picture Avatar inside a clean circular clip bubble
       try {
         const pfpImg = await loadImage(slot.avatar);
         ctx.save();
@@ -198,7 +178,6 @@ async function generatePitchImage(interaction, msgId, isEditStep) {
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 32, 0, Math.PI * 2); ctx.fill();
       }
     } else {
-      // Draw Requested Grey Interactive Circle Placeholder Dot
       ctx.fillStyle = '#7f8c8d'; 
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2);
@@ -207,14 +186,12 @@ async function generatePitchImage(interaction, msgId, isEditStep) {
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // If this is the node currently active and awaiting placement, color tag it yellow
       if (i === session.currentIndex) {
         ctx.fillStyle = '#f1c40f';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2); ctx.fill();
       }
     }
 
-    // Paint labels underneath circles
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 13px Arial';
     ctx.textAlign = 'center';
@@ -228,22 +205,20 @@ async function generatePitchImage(interaction, msgId, isEditStep) {
     ctx.fillText(nameText, pos.x, pos.y + 65);
   }
 
-  // Compile image to standard buffer format pipeline streams
   const fileAttachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'live-pitch-lineup.png' });
-
-  // Native User selector menu layout dropdown block
   const nextSlotLabel = session.currentIndex === 0 ? 'Goalkeeper (GK)' : `Outfield Slot Node #${session.currentIndex + 1}`;
+  
   const userSelectMenu = new UserSelectMenuBuilder()
     .setCustomId('native_player_picker')
-    .setPlaceholder(`👉 Select person to assign to: ${nextSlotLabel}`);
+    .setPlaceholder(`👉 Select person for: ${nextSlotLabel}`);
 
   const actionRow = new ActionRowBuilder().addComponents(userSelectMenu);
   const buttonRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('cancel_lineup').setLabel('❌ Cancel Suffix').setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId('cancel_lineup').setLabel('❌ Cancel Build').setStyle(ButtonStyle.Danger)
   );
 
   const responsePayload = {
-    content: `🏟️ **Newcastle Interactive Pitch Assembly Console**\nActive Progress: (**${session.currentIndex} / ${session.total}**) assigned. Use the dropdown roster selection menu below to choose your players!`,
+    content: `🏟️ **Newcastle Native Pitch Assembly Console**\nProgress: (**${session.currentIndex} / ${session.total}**) assigned. Choose your players using the dropdown roster menu below:`,
     files: [fileAttachment],
     components: [actionRow, buttonRow]
   };
@@ -255,13 +230,8 @@ async function generatePitchImage(interaction, msgId, isEditStep) {
   }
 }
 
-// -------------------------------------------------------------
-// CONFIRM AND FINISH LINEUP DISPATCH CHANNELS LOG ROUTER
-// -------------------------------------------------------------
 async function publishFinalLineup(interaction, msgId) {
   const session = activeSessions.get(msgId);
-
-  // Redraw final field layout canvas once loop assignments finish 
   const width = 600; const height = 800;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -279,3 +249,38 @@ async function publishFinalLineup(interaction, msgId) {
   const playersPerRow = Math.ceil(outfieldCount / rows);
   let assignedCount = 0;
 
+  for (let r = 0; r < rows; r++) {
+    const rowY = (height - 220) - (r * (height - 380) / rows);
+    const countInThisRow = Math.min(playersPerRow, outfieldCount - assignedCount);
+    for (let p = 0; p < countInThisRow; p++) {
+      coords.push({ x: (width / (countInThisRow + 1)) * (p + 1), y: rowY });
+      assignedCount++;
+    }
+  }
+
+  for (let i = 0; i < session.total; i++) {
+    const slot = session.roster[i];
+    const pos = coords[i];
+    try {
+      const pfpImg = await loadImage(slot.avatar);
+      ctx.save(); ctx.beginPath(); ctx.arc(pos.x, pos.y, 32, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(pfpImg, pos.x - 32, pos.y - 32, 64, 64); ctx.restore();
+    } catch (e) {}
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(slot.role, pos.x, pos.y + 50);
+    ctx.fillStyle = '#f1c40f'; ctx.font = '11px Arial';
+    ctx.fillText(slot.name, pos.x, pos.y + 65);
+  }
+
+  const finalAttachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'finalized-team-roster.png' });
+
+  const destinationEmbed = new EmbedBuilder()
+    .setColor(0x2ecc71)
+    .setTitle(`📋 Squad Lineup Confirmed (${session.total}v${session.total})`)
+    .setDescription('The team roster selection is complete. View the graphic roster sheet below:')
+    .setImage('attachment://finalized-team-roster.png');
+
+  try {
+    const targetChannel = await client.channels.fetch('1542615988963385403');
+    await targetChannel.send({ 
+      content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`, 
