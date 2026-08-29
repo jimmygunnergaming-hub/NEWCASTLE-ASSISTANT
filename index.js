@@ -1,170 +1,225 @@
-const express = require('express');
-const app = express();
-const path = require('path');
-const https = require('https');
-const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const http = require('http'); // Keeps your free Render tier awake and online
+const { 
+  Client, 
+  GatewayIntentBits, 
+  SlashCommandBuilder, 
+  ActionRowBuilder, 
+  UserSelectMenuBuilder, 
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder 
+} = require('discord.js');
 
-app.use(express.json({ limit: '50mb' }));
+// -------------------------------------------------------------
+// SECURE PORT HANDLER TO KEEP RENDER RUNNING FOR FREE
+// -------------------------------------------------------------
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Newcastle Native Engine Online');
+}).listen(process.env.PORT || 3000);
 
-const liveSessions = new Map();
-let mostRecentSessionId = null; 
-
-app.get('/pitch/:sessionId', (req, res) => {
-  res.sendFile(path.join(__dirname, 'pitch.html'));
+const client = new Client({ 
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] 
 });
 
-app.get('/api/session/:sessionId', (req, res) => {
-  const session = liveSessions.get(req.params.sessionId);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json(session);
-});
-
-app.get('/api/proxy-avatar', (req, res) => {
-  const avatarUrl = req.query.url;
-  if (!avatarUrl) return res.sendStatus(400);
-
-  https.get(avatarUrl, (proxyRes) => {
-    res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/png');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    proxyRes.pipe(res);
-  }).on('error', () => res.sendStatus(500));
-});
-
-app.post('/api/save-lineup/:id', async (req, res) => {
-  const session = liveSessions.get(req.params.id);
-  if (!session) return res.sendStatus(404);
-
-  session.roster = req.body.roster;
-  const imageBlob = req.body.imageBlob;
-
-  const base64Data = imageBlob.replace(/^data:image\/png;base64,/, "");
-  const imageBuffer = Buffer.from(base64Data, 'base64');
-  const fileAttachment = new AttachmentBuilder(imageBuffer, { name: 'finalized-pitch-squad.png' });
-
-  const summaryEmbed = new EmbedBuilder()
-    .setColor(0x2ecc71)
-    .setTitle('📋 Newcastle Squad Lineup Finalized')
-    .setDescription('The customized tactical system build is complete. Here is the team sheet details:')
-    .setImage('attachment://finalized-pitch-squad.png');
-
-  session.roster.forEach((slot) => {
-    const userDisplay = slot.assignedUser 
-      ? '👤 **' + slot.assignedUser.name + '**' 
-      : '*Unassigned Empty Slot*';
-    summaryEmbed.addFields({ name: '⚽ Position: ' + slot.posLabel, value: userDisplay, inline: true });
-  });
-
-  try {
-    const targetChannel = await client.channels.fetch('1542615988963385403');
-    await targetChannel.send({ 
-      content: '✅ **Lineup successfully published by <@' + session.creatorId + '>!**', 
-      embeds: [summaryEmbed],
-      files: [fileAttachment]
-    });
-  } catch (err) { console.error('Discord routing delivery error:', err); }
-
-  res.sendStatus(200);
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Web application validation listening on port ${port}`));
-
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const activeSessions = new Map();
 
 client.once('ready', () => {
-  console.log('Bot connection validated successfully! Authorized as ' + client.user.tag);
-  
-  const choicesArray = [];
+  console.log(`Bot connection validated successfully! Authorized as ${client.user.tag}`);
+
+  // Auto-generate match size options from 1v1 up to 11v11
+  const sizeChoices = [];
   for (let i = 1; i <= 11; i++) {
-    choicesArray.push({ name: i + 'v' + i + ' Matchup Size', value: i });
+    sizeChoices.push({ name: `${i}v${i} Matchup Format`, value: i });
   }
 
   const baseCommand = new SlashCommandBuilder()
     .setName('lineup')
-    .setDescription('Open the realistic interactive graphical football pitch setup workspace')
-    .addIntegerOption(option =>
+    .setDescription('Build a tactical squad lineup natively inside your server chat')
+    .addIntegerOption(option => 
       option.setName('size')
-        .setDescription('Select squad player count size format (1 up to 11)')
+        .setDescription('Number of people on the team')
         .setRequired(true)
-        .addChoices(...choicesArray));
-
-  const editCommand = new SlashCommandBuilder()
-    .setName('edit')
-    .setDescription('Modify your most recently initialized team field project space properties');
+        .addChoices(...sizeChoices));
 
   client.application.commands.create(baseCommand);
-  client.application.commands.create(editCommand);
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  // Extract the live server domain URL cleanly without guess tracking traps
-  let baseUrl = process.env.RENDER_EXTERNAL_URL;
-  if (!baseUrl) {
-    // Rebuild the link dynamically if the environment variables are obscured
-    baseUrl = 'https://' + interaction.guild.name.toLowerCase().replace(/[^a-z0-9]/g, '') + '.onrender.com';
-  }
-  
-  // Hard-correct alternative: if you look at your dashboard url, change this link to your exact sub-string if it drops out
-  if (baseUrl.includes('localhost') || !baseUrl) {
-    baseUrl = 'https://onrender.com';
+  // SECURITY OVERLAY: Restricts all interactive panel controls strictly to the command builder
+  if (interaction.isButton() || interaction.isUserSelectMenu()) {
+    const session = activeSessions.get(interaction.message.id);
+    if (session && session.creatorId !== interaction.user.id) {
+      return interaction.reply({ 
+        content: '❌ Only the coach who started this lineup session can assign personnel.', 
+        ephemeral: true 
+      });
+    }
   }
 
-  if (interaction.commandName === 'lineup') {
+  // 1. CHAT COMMAND INVOCATION
+  if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
     const totalPlayers = interaction.options.getInteger('size');
-    const sessionId = Math.random().toString(36).substring(2, 11);
-    mostRecentSessionId = sessionId;
+    
+    const controlRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('trigger_assign').setLabel('👤 Assign Next Player').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('lock_lineup').setLabel('🔒 Finish & Publish Squad').setStyle(ButtonStyle.Success)
+    );
 
-    const membersFetched = await interaction.guild.members.fetch();
-    const serverMembers = membersFetched.map(m => ({
-      name: m.user.username,
-      avatar: m.user.displayAvatarURL({ extension: 'png', size: 128 })
-    }));
+    const msg = await interaction.reply({
+      content: `🏟️ **Initializing your ${totalPlayers}v${totalPlayers} Squad Workspace Panel...**\nClick the controls below to start assigning positions step-by-step.`,
+      components: [controlRow],
+      fetchReply: true
+    });
 
-    liveSessions.set(sessionId, {
-      id: sessionId,
+    activeSessions.set(msg.id, {
       creatorId: interaction.user.id,
       channelId: interaction.channelId,
       total: totalPlayers,
-      serverMembers: serverMembers,
-      roster: Array.from({ length: totalPlayers }, (_, i) => ({ 
-        index: i, 
-        posLabel: i === 0 ? 'GK' : 'POS #' + (i + 1), 
-        assignedUser: null 
-      }))
+      currentIndex: 0,
+      activePositionName: 'GK',
+      roster: []
     });
+    
+    return refreshLineupDisplay(interaction, msg.id, false);
+  }
 
-    const dashboardLink = baseUrl + '/pitch/' + sessionId;
+  // 2. TRIGGER POSITION SETUP INPUT TIMELINE
+  if (interaction.isButton() && interaction.customId === 'trigger_assign') {
+    const msgId = interaction.message.id;
+    const session = activeSessions.get(msgId);
+    if (!session) return;
 
-    const linkRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('🏟️ Open Interactive Football Pitch').setURL(dashboardLink).setStyle(ButtonStyle.Link)
-    );
+    if (session.currentIndex >= session.total) {
+      return interaction.reply({ content: '⚠️ Your squad allocation space is already fully filled out.', ephemeral: true });
+    }
 
-    await interaction.reply({
-      content: '👋 **Hey coach!** Click the button below to launch your tactical pitch dashboard for **' + totalPlayers + 'v' + totalPlayers + '** matches.',
-      components: [linkRow],
+    // Modal forms are blocked inside component replies, so we open a standard text user-picker menu directly
+    const nextSlotNum = session.currentIndex + 1;
+    const promptLabel = nextSlotNum === 1 ? 'Goalkeeper (GK)' : `Outfield Node #${nextSlotNum}`;
+
+    const rosterPickerMenu = new UserSelectMenuBuilder()
+      .setCustomId('execute_placement')
+      .setPlaceholder(`Select user to assign to: ${promptLabel}`);
+
+    return interaction.reply({
+      content: `⚙️ **Allocation Wizard:** Use the live member roster picker menu below to map a player card directly to your lineup stack:`,
+      components: [new ActionRowBuilder().addComponents(rosterPickerMenu)],
       ephemeral: true
     });
   }
 
-  if (interaction.commandName === 'edit') {
-    if (!mostRecentSessionId || !liveSessions.has(mostRecentSessionId)) {
-      return interaction.reply({ content: '❌ No active or recent layout records found to update.', ephemeral: true });
-    }
+  // 3. EXECUTE PLACEMENT AND CACHE PROFILE IMAGE VALUES
+  if (interaction.isUserSelectMenu() && interaction.customId === 'execute_placement') {
+    const parentMessageId = interaction.message.reference.messageId;
+    const session = activeSessions.get(parentMessageId);
+    if (!session) return;
 
-    const dashboardLink = baseUrl + '/pitch/' + mostRecentSessionId;
+    const chosenUser = interaction.users.first();
+    const positionTag = session.currentIndex === 0 ? 'GK' : `POS #${session.currentIndex + 1}`;
 
-    const linkRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('📝 Edit Most Recent Lineup Workspace').setURL(dashboardLink).setStyle(ButtonStyle.Link)
-    );
-
-    await interaction.reply({
-      content: '🛠️ **Lineup modification session found.** Click the button below to resume editing where you left off:',
-      components: [linkRow],
-      ephemeral: true
+    session.roster.push({
+      id: chosenUser.id,
+      name: chosenUser.username,
+      role: positionTag,
+      avatar: chosenUser.displayAvatarURL({ extension: 'png', size: 256 })
     });
+
+    session.currentIndex++;
+    
+    // Clear out the temporary user select menu block overlay popup safely
+    await interaction.update({ content: '✅ Player successfully assigned to grid system coords.', components: [] });
+    
+    return refreshLineupDisplay(interaction, parentMessageId, true);
+  }
+
+  // 4. FINAL LOCK AND PUBLIC PUBLISH TO DISCORD CHANNEL
+  if (interaction.isButton() && interaction.customId === 'lock_lineup') {
+    const msgId = interaction.message.id;
+    const session = activeSessions.get(msgId);
+    if (!session) return;
+
+    const targetChannel = await client.channels.fetch('1542615988963385403');
+    
+    const finalizedEmbed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle(`📋 Newcastle Squad Roster Confirmed (${session.total}v${session.total})`)
+      .setDescription('The customized tactical system build is complete. Final roster sheet details displayed below:');
+
+    session.roster.forEach(player => {
+      finalizedEmbed.addFields({
+        name: `⚽ Position: ${player.role}`,
+        value: `<@${player.id}> (**${player.name}**)\n[Profile Picture Avatar](${player.avatar})`,
+        inline: true
+      });
+    });
+
+    await targetChannel.send({
+      content: `✅ **Lineup successfully locked and published by <@${session.creatorId}>!**`,
+      embeds: [finalizedEmbed]
+    });
+
+    await interaction.update({
+      content: '🔒 **Lineup locked!** The roster sheet has been processed and posted cleanly down into your logs channel.',
+      embeds: [],
+      components: []
+    });
+
+    return activeSessions.delete(msgId);
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+// -------------------------------------------------------------
+// TEXT-BASED SOCCER STADIUM FIELD ENGINE RENDERER
+// -------------------------------------------------------------
+async function refreshLineupDisplay(interaction, msgId, isEditStep) {
+  const session = activeSessions.get(msgId);
+
+  // Builds an authentic ASCII Football Arena Field inside the Discord text card layout
+  let fieldGraphic = `\n🟩🟩🟩🟩🟩🟩 **STADIUM FIELD WORKSPACE** 🟩🟩🟩🟩🟩🟩\n`;
+  fieldGraphic += `\`  ____________________________________________  \`\n`;
+  fieldGraphic += `\` |                  [ TOP BOX ]                 | \`\n`;
+
+  // Dynamic tactical array distribution calculation block loops
+  for (let i = session.total - 1; i >= 0; i--) {
+    let lineString = ' ';
+    const isAssigned = session.roster[i];
+    
+    if (isAssigned) {
+      lineString += `👉 **${session.roster[i].role}**: <@${session.roster[i].id}> (${session.roster[i].name}) ✅`;
+    } else {
+      if (i === session.currentIndex) {
+        lineString += `🟢 **[Assigning Next Slot: Node #${i + 1}]**`;
+      } else {
+        lineString += `⚪ *Unassigned Position Slot Node #${i + 1}*`;
+      }
+    }
+    fieldGraphic += `\` | \` ${lineString}\n`;
+  }
+
+  fieldGraphic += `\` |__________________ [ BOT BOX ] ________________| \`\n`;
+  fieldGraphic += `\`   [🏟️]   [🏟️]   [🏟️]   [🏟️]   [🏟️]   [🏟️]   [🏟️]   \`\n\n`;
+  fieldGraphic += `*Active Progress Info: (${session.currentIndex} / ${session.total}) Roles Allocated.*`;
+
+  const controlRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('trigger_assign').setLabel('👤 Assign Player').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('lock_lineup').setLabel('🔒 Finish Lineup').setStyle(ButtonStyle.Success).setDisabled(session.currentIndex < session.total)
+  );
+
+  const payload = { content: fieldGraphic, components: [controlRow] };
+
+  if (isEditStep) {
+    const parentChannel = await client.channels.fetch(session.channelId);
+    const targetMsg = await parentChannel.messages.fetch(msgId);
+    await targetMsg.edit(payload);
+  } else {
+    await interaction.editReply(payload);
+  }
+}
+
+if (!process.env.DISCORD_TOKEN) {
+  console.error("❌ DEPLOYMENT FATAL ERROR: Missing DISCORD_TOKEN configuration variable.");
+  process.exit(1);
+} else {
+  client.login(process.env.DISCORD_TOKEN);
+}
