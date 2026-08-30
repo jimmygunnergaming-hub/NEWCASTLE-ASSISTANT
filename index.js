@@ -1,3 +1,15 @@
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+// This is the route the uptime bot will hit
+app.get('/ping', (req, res) => {
+  res.send('Bot is alive!');
+});
+
+app.listen(port, () => {
+  console.log(`Web server listening on port ${port}`);
+});
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
