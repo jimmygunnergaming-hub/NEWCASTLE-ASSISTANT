@@ -1,251 +1,575 @@
-const http = require('http'); 
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { createCanvas, loadImage } = require('canvas');
-const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 
-// Lightweight port listener to satisfy Render's web traffic health check rules
-http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Newcastle Bot Active');
-}).listen(process.env.PORT || 3000);
+const {
+  Client,
+  GatewayIntentBits,
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  UserSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  AttachmentBuilder
+} = require('discord.js');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const PORT = Number(process.env.PORT || 3000);
+const TOKEN = process.env.DISCORD_TOKEN;
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
+
 const activeSessions = new Map();
 
-client.once('ready', () => {
-  console.log('Bot connection validated successfully!');
-  const command = new SlashCommandBuilder()
-    .setName('lineup')
-    .setDescription('Build a high-quality graphical football field lineup')
-    .addIntegerOption(opt => opt.setName('size').setDescription('Number of players (1-11)').setRequired(true).setMinValue(1).setMaxValue(11));
-  client.application.commands.create(command);
-});
+function json(res, status, data) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8'
+  });
 
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand() && !interaction.isUserSelectMenu() && !interaction.isButton()) return;
-
-  // SAFE SESSION ID EXTRACTION (Bypasses array index stripping bugs)
-  let msgId = '';
-  if (interaction.isUserSelectMenu() || interaction.isButton()) {
-    const cid = interaction.customId;
-    msgId = cid.substring(cid.lastIndexOf('_') + 1);
-    
-    const session = activeSessions.get(msgId);
-    if (session && session.creatorId !== interaction.user.id) {
-      return interaction.reply({ content: '❌ Only the coach who started this command can modify player slots.', ephemeral: true });
-    }
-  }
-
-  // 1. SLASH COMMAND INITIALIZATION
-  if (interaction.isChatInputCommand() && interaction.commandName === 'lineup') {
-    const size = interaction.options.getInteger('size');
-    
-    const msg = await interaction.reply({ content: '🏟️ Initializing high-quality pitch layout...', fetchReply: true });
-    
-    // Seed initial position values and structural offsets
-    const baseRoster = Array.from({ length: size }, (_, i) => ({
-      index: i,
-      name: 'Unassigned',
-      role: i === 0 ? 'GK' : `POS #${i + 1}`,
-      avatar: '',
-      offsetX: 0, 
-      offsetY: 0  
-    }));
-
-    activeSessions.set(msg.id, { 
-      creatorId: interaction.user.id, 
-      total: size, 
-      currentIndex: 0, 
-      roster: baseRoster
-    });
-    
-    return generatePitch(interaction, msg.id, false);
-  }
-
-  // 2. NUDGE ARROW INTERACTIVE CONTROLS
-  if (interaction.isButton() && (interaction.customId.startsWith('up_') || interaction.customId.startsWith('down_') || interaction.customId.startsWith('left_') || interaction.customId.startsWith('right_'))) {
-    const session = activeSessions.get(msgId);
-    if (!session) return;
-
-    const cid = interaction.customId;
-    const direction = cid.substring(0, cid.indexOf('_'));
-
-    const activeTarget = session.roster[session.currentIndex];
-    if (activeTarget) {
-      if (direction === 'up') activeTarget.offsetY -= 25;
-      if (direction === 'down') activeTarget.offsetY += 25;
-      if (direction === 'left') activeTarget.offsetX -= 25;
-      if (direction === 'right') activeTarget.offsetX += 25;
-    }
-
-    await interaction.deferUpdate();
-    return generatePitch(interaction, msgId, true);
-  }
-
-  // 3. PLAYER REPETITIVE SELECTION DROPDOWN HANDLER
-  if (interaction.isUserSelectMenu() && interaction.customId.startsWith('pick_')) {
-    const session = activeSessions.get(msgId);
-    if (!session) return;
-
-    const user = interaction.users.first();
-    if (!user) return interaction.reply({ content: '❌ Failed to read user selection.', ephemeral: true });
-
-    const positionTag = session.currentIndex === 0 ? 'GK' : `POS #${session.currentIndex + 1}`;
-
-    // Map properties securely while retaining position alignment offsets
-    session.roster[session.currentIndex].name = user.username;
-    session.roster[session.currentIndex].role = positionTag;
-    session.roster[session.currentIndex].avatar = user.displayAvatarURL({ extension: 'png', size: 256 });
-
-    session.currentIndex++;
-
-    if (session.currentIndex >= session.total) {
-      return finishLineup(interaction, msgId);
-    } else {
-      await interaction.deferUpdate();
-      return generatePitch(interaction, msgId, true);
-    }
-  }
-});
-
-// INTERACTIVE CANVAS GRAPHICS WORKSPACE GENERATOR
-async function generatePitch(interaction, msgId, isEdit) {
-  const session = activeSessions.get(msgId);
-  if (!session) return;
-  
-  const width = 800;
-  const height = 1000;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-
-  // Draw Vibrant Pitch Background
-  ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
-
-  // Draw Alternating Grass Stripe Panels
-  ctx.fillStyle = '#219653';
-  for (let i = 0; i < height; i += 200) { ctx.fillRect(0, i, width, 100); }
-
-  // Draw Structural Field Line Markings
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6;
-  ctx.strokeRect(40, 40, width - 80, height - 80);
-  ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
-
-  // Auto Grid Distribution Mathematics System
-  const coords = [{ x: width / 2, y: height - 100 }];
-
-  if (session.total > 1) {
-    const outfieldCount = session.total - 1;
-    let rows = outfieldCount > 7 ? 3 : (outfieldCount > 3 ? 2 : 1);
-    const playersPerRow = Math.ceil(outfieldCount / rows);
-    let assignedCount = 0;
-
-    for (let r = 0; r < rows; r++) {
-      const rowY = (height - 280) - (r * (height - 480) / rows);
-      const countInThisRow = Math.min(playersPerRow, outfieldCount - assignedCount);
-
-      for (let p = 0; p < countInThisRow; p++) {
-        const rowX = (width / (countInThisRow + 1)) * (p + 1);
-        coords.push({ x: rowX, y: rowY });
-        assignedCount++;
-      }
-    }
-  }
-
-  // Draw Dynamic Nodes onto compiled Field
-  for (let i = 0; i < session.total; i++) {
-    const slot = session.roster[i];
-    const basePos = coords[i] || { x: width / 2, y: height / 2 };
-    
-    // Apply position offsets injected from user directional movements
-    const pos = {
-      x: basePos.x + slot.offsetX,
-      y: basePos.y + slot.offsetY
-    };
-
-    if (slot.avatar !== '') {
-      try {
-        const img = await loadImage(slot.avatar);
-        ctx.save();
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(img, pos.x - 40, pos.y - 40, 80, 80);
-        ctx.restore();
-        
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.stroke();
-      } catch (err) {
-        ctx.fillStyle = '#e67e22';
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); ctx.fill();
-      }
-    } else {
-      ctx.fillStyle = '#7f8c8d';
-      ctx.beginPath(); ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-      ctx.stroke();
-
-      if (i === session.currentIndex) {
-        ctx.fillStyle = '#f1c40f';
-        ctx.beginPath(); ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f1c40f';
-    ctx.font = 'bold 15px Arial';
-    ctx.fillText(slot.name !== 'Unassigned' ? slot.role : `SLOT #${i + 1}`, pos.x, pos.y + 65);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '13px Arial';
-    ctx.fillText(slot.name, pos.x, pos.y + 85);
-  }
-
-  const file = new AttachmentBuilder(canvas.toBuffer(), { name: 'pitch.png' });
-  
-  // Component Row 1: The selection selection dropdown menu
-  const menuRow = new ActionRowBuilder().addComponents(
-    new UserSelectMenuBuilder()
-      .setCustomId(`pick_${msgId}`)
-      .setPlaceholder(`👉 Select player for: ${session.currentIndex === 0 ? 'GK' : `POS #${session.currentIndex + 1}`}`)
-  );
-
-  // Component Row 2: Direction move nudge adjustments pad
-  const padRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`left_${msgId}`).setLabel('◀ Left').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`up_${msgId}`).setLabel('▲ Up').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`down_${msgId}`).setLabel('▼ Down').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`right_${msgId}`).setLabel('▶ Right').setStyle(ButtonStyle.Secondary)
-  );
-
-  const payload = { 
-    content: `🏟️ **Newcastle Tactical Pitch Setup Console**\nProgress: (**${session.currentIndex} / ${session.total}**) roles allocated. Select players below:`, 
-    files: [file], 
-    components: [menuRow, padRow] 
-  };
-
-  if (isEdit) {
-    return interaction.editReply(payload);
-  } else {
-    return interaction.editReply(payload);
-  }
+  res.end(JSON.stringify(data));
 }
 
-// COMPLETE PASS FOR LOCKING AND LOGGING SHEET MAPS PUBLICLY
-async function finishLineup(interaction, msgId) {
-  const session = activeSessions.get(msgId);
-  if (!session) return;
+function html(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8'
+  });
 
-  const width = 800; const height = 1000;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-  
-  ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = '#219653'; for (let i = 0; i < height; i += 200) { ctx.fillRect(0, i, width, 100); }
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, width - 80, height - 80);
-  ctx.beginPath(); ctx.moveTo(40, height / 2); ctx.lineTo(width - 40, height / 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(width / 2, height / 2, 90, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeRect(width / 2 - 180, height - 200, 360, 160); ctx.strokeRect(width / 2 - 180, 40, 360, 160);
+  res.end(body);
+}
 
-  const coords = [{ x: width / 2, y: height - 100 }];
-  if (session.total > 1) {
+const server = http.createServer((req, res) => {
+  const url = new URL(
+    req.url,
+    `http://${req.headers.host || 'localhost'}`
+  );
 
-  
+  if (req.method === 'GET' && url.pathname === '/') {
+    return html(
+      res,
+      200,
+      `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Newcastle Assistant</title>
+</head>
+<body style="
+font-family:Arial;
+background:#111;
+color:#fff;
+text-align:center;
+padding:50px;
+">
+<h1>Newcastle Assistant</h1>
+<p>Bot is online.</p>
+</body>
+</html>`
+    );
+  }
+
+  if (req.method === 'GET' && url.pathname === '/health') {
+    return json(res, 200, {
+      ok: true,
+      bot: client.isReady()
+    });
+  }
+
+  if (
+    req.method === 'GET' &&
+    url.pathname.startsWith('/pitch/')
+  ) {
+    const sessionId = decodeURIComponent(
+      url.pathname.slice('/pitch/'.length)
+    );
+
+    const filePath = path.join(__dirname, 'pitch.html');
+
+    if (!fs.existsSync(filePath)) {
+      return html(res, 404, 'pitch.html not found');
+    }
+
+    const page = fs.readFileSync(filePath, 'utf8');
+
+    return html(res, 200, page);
+  }
+
+  if (
+    req.method === 'GET' &&
+    url.pathname.startsWith('/api/session/')
+  ) {
+    const sessionId = decodeURIComponent(
+      url.pathname.slice('/api/session/'.length)
+    );
+
+    const session = activeSessions.get(sessionId);
+
+    if (!session) {
+      return json(res, 404, {
+        error: 'Session not found or expired.'
+      });
+    }
+
+    return json(res, 200, {
+      roster: session.roster,
+      serverMembers: session.serverMembers,
+      creatorId: session.creatorId
+    });
+  }
+
+  if (
+    req.method === 'POST' &&
+    url.pathname.startsWith('/api/session/')
+  ) {
+    const sessionId = decodeURIComponent(
+      url.pathname.slice('/api/session/'.length)
+    );
+
+    const session = activeSessions.get(sessionId);
+
+    if (!session) {
+      return json(res, 404, {
+        error: 'Session not found or expired.'
+      });
+    }
+
+    let body = '';
+
+    req.on('data', chunk => {
+      body += chunk;
+
+      if (body.length > 1000000) {
+        req.destroy();
+      }
+    });
+
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+
+        if (data.uid !== session.creatorId) {
+          return json(res, 403, {
+            error:
+              'Only the coach who created the lineup can edit it.'
+          });
+        }
+
+        if (Array.isArray(data.roster)) {
+          data.roster.forEach((incoming, i) => {
+            if (!session.roster[i]) {
+              return;
+            }
+
+            if (typeof incoming.pctX === 'number') {
+              session.roster[i].pctX = Math.max(
+                5,
+                Math.min(95, incoming.pctX)
+              );
+            }
+
+            if (typeof incoming.pctY === 'number') {
+              session.roster[i].pctY = Math.max(
+                5,
+                Math.min(95, incoming.pctY)
+              );
+            }
+
+            if (typeof incoming.role === 'string') {
+              session.roster[i].role =
+                incoming.role.slice(0, 30);
+            }
+
+            if (typeof incoming.name === 'string') {
+              session.roster[i].name =
+                incoming.name.slice(0, 40);
+            }
+
+            if (typeof incoming.avatar === 'string') {
+              session.roster[i].avatar =
+                incoming.avatar.slice(0, 1000);
+            }
+          });
+        }
+
+        if (data.action === 'finish') {
+          const result =
+            await postFinishedLineup(sessionId);
+
+          return json(
+            res,
+            result.ok ? 200 : 500,
+            result
+          );
+        }
+
+        return json(res, 200, {
+          ok: true,
+          roster: session.roster
+        });
+
+      } catch (err) {
+        console.error(
+          'Dashboard request error:',
+          err
+        );
+
+        return json(res, 400, {
+          error: 'Invalid request.'
+        });
+      }
+    });
+
+    return;
+  }
+
+  return html(res, 404, 'Not found');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(
+    `Web server listening on 0.0.0.0:${PORT}`
+  );
+});
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers
+  ]
+});
+
+function getPublicPitchUrl(sessionId, interaction) {
+  const base =
+    PUBLIC_URL ||
+    `https://${interaction.client.user.username
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')}.onrender.com`;
+
+  return `${base}/pitch/${encodeURIComponent(
+    sessionId
+  )}?uid=${encodeURIComponent(interaction.user.id)}`;
+}
+
+client.once('ready', async () => {
+  console.log(
+    `Bot logged in as ${client.user.tag}`
+  );
+
+  const command = new SlashCommandBuilder()
+    .setName('lineup')
+    .setDescription(
+      'Build a high-quality graphical football field lineup'
+    )
+    .addIntegerOption(opt =>
+      opt
+        .setName('size')
+        .setDescription(
+          'Number of players (1-11)'
+        )
+        .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(11)
+    );
+
+  try {
+    await client.application.commands.set([
+      command
+    ]);
+
+    console.log(
+      'Slash command /lineup registered.'
+    );
+  } catch (err) {
+    console.error(
+      'Failed to register /lineup:',
+      err
+    );
+  }
+});
+
+client.on(
+  'interactionCreate',
+  async interaction => {
+    try {
+      if (
+        interaction.isChatInputCommand() &&
+        interaction.commandName === 'lineup'
+      ) {
+        const size =
+          interaction.options.getInteger(
+            'size',
+            true
+          );
+
+        const msg =
+          await interaction.reply({
+            content:
+              '🏟️ Initializing high-quality pitch layout...',
+            fetchReply: true
+          });
+
+        const roster = Array.from(
+          { length: size },
+          (_, i) => ({
+            index: i,
+            name: 'Unassigned',
+            role:
+              i === 0
+                ? 'GK'
+                : `POS #${i + 1}`,
+            avatar: '',
+            pctX: 50,
+            pctY:
+              size === 1
+                ? 50
+                : i === 0
+                  ? 90
+                  : 90 -
+                    Math.floor(
+                      (i - 1) /
+                        Math.max(
+                          1,
+                          Math.ceil(
+                            (size - 1) / 3
+                          )
+                        )
+                    ) *
+                      22
+          })
+        );
+
+        const outfield =
+          Math.max(0, size - 1);
+
+        if (outfield > 0) {
+          const rows =
+            outfield > 7
+              ? 3
+              : outfield > 3
+                ? 2
+                : 1;
+
+          let index = 1;
+
+          for (
+            let r = 0;
+            r < rows;
+            r++
+          ) {
+            const count = Math.min(
+              Math.ceil(
+                outfield / rows
+              ),
+              outfield - (index - 1)
+            );
+
+            for (
+              let p = 0;
+              p < count;
+              p++
+            ) {
+              roster[index].pctX =
+                ((p + 1) /
+                  (count + 1)) *
+                100;
+
+              roster[index].pctY =
+                78 - r * 22;
+
+              index++;
+            }
+          }
+        }
+
+        const serverMembers = [];
+
+        try {
+          const members =
+            await interaction.guild.members.fetch();
+
+          members.forEach(member => {
+            if (!member.user.bot) {
+              serverMembers.push({
+                id: member.id,
+                name:
+                  member.displayName ||
+                  member.user.username,
+                username:
+                  member.user.username,
+                avatar:
+                  member.user.displayAvatarURL({
+                    extension: 'png',
+                    size: 128
+                  })
+              });
+            }
+          });
+        } catch (err) {
+          console.warn(
+            'Could not fetch guild members:',
+            err.message
+          );
+        }
+
+        activeSessions.set(msg.id, {
+          creatorId:
+            interaction.user.id,
+          guildId:
+            interaction.guildId,
+          channelId:
+            interaction.channelId,
+          messageId: msg.id,
+          total: size,
+          currentIndex: 0,
+          roster,
+          serverMembers
+        });
+
+        return generatePitch(
+          interaction,
+          msg.id,
+          false
+        );
+      }
+
+      if (interaction.isButton()) {
+        const parts =
+          interaction.customId.split('_');
+
+        const action = parts[0];
+
+        const msgId =
+          parts.slice(1).join('_');
+
+        const session =
+          activeSessions.get(msgId);
+
+        if (!session) {
+          return interaction.reply({
+            content:
+              '❌ This lineup session has expired.',
+            ephemeral: true
+          });
+        }
+
+        if (
+          interaction.user.id !==
+          session.creatorId
+        ) {
+          return interaction.reply({
+            content:
+              '❌ Only the lineup creator can use these controls.',
+            ephemeral: true
+          });
+        }
+
+        if (action === 'open') {
+          return interaction.reply({
+            content:
+              `🏟️ **Open the lineup editor:**\n${getPublicPitchUrl(
+                msgId,
+                interaction
+              )}`,
+            ephemeral: true
+          });
+        }
+
+        if (action === 'finish') {
+          const result =
+            await postFinishedLineup(
+              msgId
+            );
+
+          return interaction.reply({
+            content: result.ok
+              ? '✅ Lineup posted successfully.'
+              : `❌ ${result.error}`,
+            ephemeral: true
+          });
+        }
+      }
+
+      if (
+        interaction.isUserSelectMenu() &&
+        interaction.customId.startsWith(
+          'player_'
+        )
+      ) {
+        const parts =
+          interaction.customId.split('_');
+
+        const msgId =
+          parts.slice(1).join('_');
+
+        const session =
+          activeSessions.get(msgId);
+
+        if (!session) {
+          return interaction.reply({
+            content:
+              '❌ This lineup session has expired.',
+            ephemeral: true
+          });
+        }
+
+        const selectedId =
+          interaction.values[0];
+
+        const player =
+          session.serverMembers.find(
+            member =>
+              member.id === selectedId
+          );
+
+        if (!player) {
+          return interaction.reply({
+            content:
+              '❌ Player not found.',
+            ephemeral: true
+          });
+        }
+
+        const index =
+          session.currentIndex;
+
+        if (!session.roster[index]) {
+          return interaction.reply({
+            content:
+              '❌ Invalid player position.',
+            ephemeral: true
+          });
+        }
+
+        session.roster[index].name =
+          player.name;
+
+        session.roster[index].avatar =
+          player.avatar;
+
+        session.currentIndex =
+          Math.min(
+            session.currentIndex + 1,
+            session.total - 1
+          );
+
+        return interaction.reply({
+          content:
+            `✅ **${player.name}** added to the lineup.`,
+          ephemeral: true
+        });
+      }
+
+    } catch (err) {
+      console.error(
+        'Interaction error:',
+        err
+      );
+
+      if (!interaction.replied) {
+        await interaction.reply({
+          content:
+            '❌ Something went wrong.',
+          ephemeral: true
+        }).catch(() => {});
+      }
+    }
+  }
+);
