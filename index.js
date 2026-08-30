@@ -583,5 +583,19 @@ client.on(
         }).catch(() => {});
       }
     }
+    if (!TOKEN) {
+  console.error("❌ DISCORD_TOKEN is missing from Render Environment Variables.");
+  process.exit(1);
+}
+
+client.login(TOKEN)
+  .then(() => {
+    console.log("✅ Discord login started successfully.");
+  })
+  .catch((error) => {
+    console.error("❌ Discord login failed:");
+    console.error(error);
+    process.exit(1);
+  });
   }
 );
