@@ -52,101 +52,101 @@ function escapeSvg(value = "") {
 }
 
 const formations = {
-  1: [["GK",50,88]],
+  1: [["GK", 50, 88]],
 
   2: [
-    ["GK",50,88],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["ST", 50, 18]
   ],
 
   3: [
-    ["GK",50,88],
-    ["ST",32,20],
-    ["ST",68,20]
+    ["GK", 50, 88],
+    ["ST", 32, 20],
+    ["ST", 68, 20]
   ],
 
   4: [
-    ["GK",50,88],
-    ["LB",25,60],
-    ["RB",75,60],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 25, 60],
+    ["RB", 75, 60],
+    ["ST", 50, 18]
   ],
 
   5: [
-    ["GK",50,88],
-    ["LB",18,62],
-    ["CB",50,62],
-    ["RB",82,62],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 18, 62],
+    ["CB", 50, 62],
+    ["RB", 82, 62],
+    ["ST", 50, 18]
   ],
 
   6: [
-    ["GK",50,88],
-    ["LB",15,64],
-    ["CB",38,64],
-    ["CB",62,64],
-    ["RB",85,64],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 15, 64],
+    ["CB", 38, 64],
+    ["CB", 62, 64],
+    ["RB", 85, 64],
+    ["ST", 50, 18]
   ],
 
   7: [
-    ["GK",50,88],
-    ["LB",12,64],
-    ["CB",34,66],
-    ["CB",66,66],
-    ["RB",88,64],
-    ["LW",30,35],
-    ["ST",68,22]
+    ["GK", 50, 88],
+    ["LB", 12, 64],
+    ["CB", 34, 66],
+    ["CB", 66, 66],
+    ["RB", 88, 64],
+    ["LW", 30, 35],
+    ["ST", 68, 22]
   ],
 
   8: [
-    ["GK",50,88],
-    ["LB",10,65],
-    ["CB",30,67],
-    ["CB",70,67],
-    ["RB",90,65],
-    ["LM",25,38],
-    ["RM",75,38],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 10, 65],
+    ["CB", 30, 67],
+    ["CB", 70, 67],
+    ["RB", 90, 65],
+    ["LM", 25, 38],
+    ["RM", 75, 38],
+    ["ST", 50, 18]
   ],
 
   9: [
-    ["GK",50,88],
-    ["LB",9,66],
-    ["CB",29,69],
-    ["CB",50,69],
-    ["CB",71,69],
-    ["RB",91,66],
-    ["LW",23,37],
-    ["RW",77,37],
-    ["ST",50,17]
+    ["GK", 50, 88],
+    ["LB", 9, 66],
+    ["CB", 29, 69],
+    ["CB", 50, 69],
+    ["CB", 71, 69],
+    ["RB", 91, 66],
+    ["LW", 23, 37],
+    ["RW", 77, 37],
+    ["ST", 50, 17]
   ],
 
   10: [
-    ["GK",50,88],
-    ["LB",8,67],
-    ["CB",27,70],
-    ["CB",50,70],
-    ["CB",73,70],
-    ["RB",92,67],
-    ["LM",22,43],
-    ["RM",78,43],
-    ["LW",34,23],
-    ["ST",66,20]
+    ["GK", 50, 88],
+    ["LB", 8, 67],
+    ["CB", 27, 70],
+    ["CB", 50, 70],
+    ["CB", 73, 70],
+    ["RB", 92, 67],
+    ["LM", 22, 43],
+    ["RM", 78, 43],
+    ["LW", 34, 23],
+    ["ST", 66, 20]
   ],
 
   11: [
-    ["GK",50,90],
-    ["LB",8,69],
-    ["CB",28,72],
-    ["CB",50,72],
-    ["CB",72,72],
-    ["RB",92,69],
-    ["LM",17,46],
-    ["CM",38,47],
-    ["CM",62,47],
-    ["RM",83,46],
-    ["ST",50,17]
+    ["GK", 50, 90],
+    ["LB", 8, 69],
+    ["CB", 28, 72],
+    ["CB", 50, 72],
+    ["CB", 72, 72],
+    ["RB", 92, 69],
+    ["LM", 17, 46],
+    ["CM", 38, 47],
+    ["CM", 62, 47],
+    ["RM", 83, 46],
+    ["ST", 50, 17]
   ]
 };
 
@@ -257,9 +257,13 @@ client.on("interactionCreate", async interaction => {
       interaction.customId.startsWith("lineup_size_")
     ) {
 
-      const size = Number(
-        interaction.customId.replace("lineup_size_", "")
-      );
+      const size =
+        Number(
+          interaction.customId.replace(
+            "lineup_size_",
+            ""
+          )
+        );
 
       if (size < 1 || size > 11) {
 
@@ -295,9 +299,15 @@ client.on("interactionCreate", async interaction => {
 
   } catch (error) {
 
-    console.error("Discord interaction error:", error);
+    console.error(
+      "Discord interaction error:",
+      error
+    );
 
-    if (!interaction.replied && !interaction.deferred) {
+    if (
+      !interaction.replied &&
+      !interaction.deferred
+    ) {
 
       await interaction.reply({
         content: "Something went wrong.",
@@ -308,280 +318,367 @@ client.on("interactionCreate", async interaction => {
 });
 
 /* =========================
-   HTTP SERVER
+   HTTP
 ========================= */
 
 const server =
   http.createServer(async (req, res) => {
 
-  try {
+    try {
 
-    const url =
-      new URL(
-        req.url,
-        `http://${req.headers.host || "localhost"}`
-      );
+      const url =
+        new URL(
+          req.url,
+          `http://${req.headers.host || "localhost"}`
+        );
 
-    /* HEALTH */
+      /* HEALTH */
 
-    if (url.pathname === "/health") {
+      if (url.pathname === "/health") {
 
-      return sendJson(res, 200, {
-        online: true,
-        discord: client.isReady()
-      });
-    }
+        return sendJson(
+          res,
+          200,
+          {
+            online: true,
+            discord: client.isReady()
+          }
+        );
+      }
 
-    /* PITCH */
+      /* PITCH */
 
-    if (url.pathname.startsWith("/pitch/")) {
+      if (url.pathname.startsWith("/pitch/")) {
 
-      const id =
-        url.pathname.split("/")[2];
+        const id =
+          url.pathname.split("/")[2];
 
-      const session =
-        sessions.get(id);
+        const session =
+          sessions.get(id);
 
-      if (!session) {
+        if (!session) {
+
+          return sendHtml(
+            res,
+            404,
+            errorPage(
+              "Lineup not found or expired."
+            )
+          );
+        }
 
         return sendHtml(
           res,
-          404,
-          errorPage(
-            "Lineup not found or expired."
-          )
+          200,
+          pitchPage(session)
         );
       }
 
-      return sendHtml(
-        res,
-        200,
-        pitchPage(session)
-      );
-    }
-
-    /* GET SESSION */
-
-    if (
-      url.pathname.startsWith("/api/session/") &&
-      req.method === "GET"
-    ) {
-
-      const id =
-        url.pathname.split("/")[3];
-
-      const session =
-        sessions.get(id);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      const guild =
-        client.guilds.cache.get(
-          session.guildId
-        );
-
-      let serverMembers = [];
-
-      if (guild) {
-
-        try {
-
-          const fetched =
-            await guild.members.fetch();
-
-          serverMembers =
-            fetched
-              .filter(m => !m.user.bot)
-              .map(m => ({
-                id: m.user.id,
-                name: m.displayName,
-                username: m.user.username,
-                avatar:
-                  m.user.displayAvatarURL({
-                    extension: "png",
-                    size: 256
-                  })
-              }));
-
-        } catch (e) {
-
-          console.error(
-            "Member fetch error:",
-            e
-          );
-        }
-      }
-
-      return sendJson(res, 200, {
-        id: session.id,
-        size: session.size,
-        creatorId: session.creatorId,
-        finished: session.finished,
-        roster: session.roster,
-        serverMembers
-      });
-    }
-
-    /* SAVE */
-
-    if (
-      url.pathname.startsWith("/api/session/") &&
-      req.method === "POST"
-    ) {
-
-      const id =
-        url.pathname.split("/")[3];
-
-      const session =
-        sessions.get(id);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      const body =
-        await readBody(req);
-
-      if (body.uid !== session.creatorId) {
-
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
-
-      if (Array.isArray(body.roster)) {
-
-        body.roster.forEach(
-          (p, index) => {
-
-          if (!session.roster[index]) {
-            return;
-          }
-
-          const target =
-            session.roster[index];
-
-          if (
-            Number.isFinite(
-              Number(p.x)
-            )
-          ) {
-
-            target.x =
-              Math.max(
-                4,
-                Math.min(
-                  96,
-                  Number(p.x)
-                )
-              );
-          }
-
-          if (
-            Number.isFinite(
-              Number(p.y)
-            )
-          ) {
-
-            target.y =
-              Math.max(
-                4,
-                Math.min(
-                  96,
-                  Number(p.y)
-                )
-              );
-          }
-
-          if (
-            typeof p.bench === "boolean"
-          ) {
-
-            target.bench =
-              p.bench;
-          }
-
-          if (
-            typeof p.position === "string"
-          ) {
-
-            target.position =
-              p.position
-                .trim()
-                .slice(0, 20);
-          }
-        });
-      }
-
-      return sendJson(res, 200, {
-        success: true,
-        roster: session.roster
-      });
-    }
-
-    /* ASSIGN */
-
-    if (
-      url.pathname === "/api/assign" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await readBody(req);
-
-      const session =
-        sessions.get(body.session);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
+      /* GET SESSION */
 
       if (
-        body.uid !==
-        session.creatorId
+        url.pathname.startsWith("/api/session/") &&
+        req.method === "GET"
       ) {
 
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
+        const id =
+          url.pathname.split("/")[3];
 
-      const slot =
-        session.roster[
-          Number(body.slot)
-        ];
+        const session =
+          sessions.get(id);
 
-      if (!slot) {
+        if (!session) {
 
-        return sendJson(res, 400, {
-          error: "Invalid player slot."
-        });
-      }
+          return sendJson(
+            res,
+            404,
+            {
+              error: "Session not found"
+            }
+          );
+        }
 
-      const guild =
-        client.guilds.cache.get(
-          session.guildId
+        const guild =
+          client.guilds.cache.get(
+            session.guildId
+          );
+
+        let serverMembers = [];
+
+        if (guild) {
+
+          try {
+
+            const fetched =
+              await guild.members.fetch();
+
+            serverMembers =
+              fetched
+                .filter(
+                  m => !m.user.bot
+                )
+                .map(m => ({
+                  id: m.user.id,
+                  name: m.displayName,
+                  username: m.user.username,
+                  avatar:
+                    m.user.displayAvatarURL({
+                      extension: "png",
+                      size: 128
+                    })
+                }));
+
+          } catch (e) {
+
+            console.error(
+              "Member fetch error:",
+              e
+            );
+          }
+        }
+
+        return sendJson(
+          res,
+          200,
+          {
+            id: session.id,
+            size: session.size,
+            creatorId: session.creatorId,
+            finished: session.finished,
+            roster: session.roster,
+            serverMembers
+          }
         );
-
-      if (!guild) {
-
-        return sendJson(res, 500, {
-          error: "Discord server unavailable."
-        });
       }
 
-      try {
+      /* SAVE */
+
+      if (
+        url.pathname.startsWith("/api/session/") &&
+        req.method === "POST"
+      ) {
+
+        const id =
+          url.pathname.split("/")[3];
+
+        const session =
+          sessions.get(id);
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error: "Session not found"
+            }
+          );
+        }
+
+        const body =
+          await readBody(req);
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot edit this lineup."
+            }
+          );
+        }
+
+        if (Array.isArray(body.roster)) {
+
+          body.roster.forEach(
+            (p, index) => {
+
+              if (!session.roster[index]) {
+                return;
+              }
+
+              const target =
+                session.roster[index];
+
+              if (
+                Number.isFinite(
+                  Number(p.x)
+                )
+              ) {
+
+                target.x =
+                  Math.max(
+                    4,
+                    Math.min(
+                      96,
+                      Number(p.x)
+                    )
+                  );
+              }
+
+              if (
+                Number.isFinite(
+                  Number(p.y)
+                )
+              ) {
+
+                target.y =
+                  Math.max(
+                    4,
+                    Math.min(
+                      96,
+                      Number(p.y)
+                    )
+                  );
+              }
+
+              if (
+                typeof p.bench ===
+                "boolean"
+              ) {
+
+                target.bench =
+                  p.bench;
+              }
+
+              if (
+                typeof p.position ===
+                "string"
+              ) {
+
+                target.position =
+                  p.position
+                    .trim()
+                    .slice(0, 20);
+              }
+
+              /*
+                Save player information too.
+              */
+
+              if (
+                typeof p.userId ===
+                "string"
+              ) {
+
+                target.userId =
+                  p.userId;
+              }
+
+              if (
+                typeof p.name ===
+                "string"
+              ) {
+
+                target.name =
+                  p.name
+                    .trim()
+                    .slice(0, 100);
+              }
+
+              if (
+                typeof p.avatar ===
+                "string"
+              ) {
+
+                target.avatar =
+                  p.avatar
+                    .slice(0, 1000);
+              }
+            }
+          );
+        }
+
+        return sendJson(
+          res,
+          200,
+          {
+            success: true,
+            roster: session.roster
+          }
+        );
+      }
+
+      /* ASSIGN */
+
+      if (
+        url.pathname === "/api/assign" &&
+        req.method === "POST"
+      ) {
+
+        const body =
+          await readBody(req);
+
+        const session =
+          sessions.get(
+            body.session
+          );
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Session not found"
+            }
+          );
+        }
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot edit this lineup."
+            }
+          );
+        }
+
+        const slot =
+          session.roster[
+            Number(body.slot)
+          ];
+
+        if (!slot) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Invalid player slot."
+            }
+          );
+        }
+
+        const guild =
+          client.guilds.cache.get(
+            session.guildId
+          );
+
+        if (!guild) {
+
+          return sendJson(
+            res,
+            500,
+            {
+              error:
+                "Discord server unavailable."
+            }
+          );
+        }
 
         const member =
           await guild.members.fetch(
@@ -593,10 +690,21 @@ const server =
           member.user.bot
         ) {
 
-          return sendJson(res, 404, {
-            error: "Player not found."
-          });
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Player not found."
+            }
+          );
         }
+
+        /*
+          IMPORTANT:
+          Assigning a new player to a grey
+          slot removes the bench status.
+        */
 
         slot.userId =
           member.user.id;
@@ -610,310 +718,383 @@ const server =
             size: 256
           });
 
-        /*
-         * IMPORTANT:
-         * If player is selected again,
-         * they are automatically removed
-         * from the bench.
-         */
-
         slot.bench = false;
 
-        return sendJson(res, 200, {
-          success: true,
-          slot
-        });
-
-      } catch (error) {
-
-        console.error(
-          "Assign error:",
-          error
-        );
-
-        return sendJson(res, 404, {
-          error: "Player not found."
-        });
-      }
-    }
-
-    /* POSITION */
-
-    if (
-      url.pathname === "/api/position" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await readBody(req);
-
-      const session =
-        sessions.get(body.session);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      if (
-        body.uid !==
-        session.creatorId
-      ) {
-
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
-
-      const slot =
-        session.roster[
-          Number(body.slot)
-        ];
-
-      if (!slot) {
-
-        return sendJson(res, 400, {
-          error: "Invalid slot."
-        });
-      }
-
-      const position =
-        String(body.position || "")
-          .trim()
-          .slice(0, 20);
-
-      if (!position) {
-
-        return sendJson(res, 400, {
-          error: "Position cannot be empty."
-        });
-      }
-
-      slot.position =
-        position;
-
-      return sendJson(res, 200, {
-        success: true,
-        slot
-      });
-    }
-
-    /* MOVE */
-
-    if (
-      url.pathname === "/api/move" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await readBody(req);
-
-      const session =
-        sessions.get(body.session);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      if (
-        body.uid !==
-        session.creatorId
-      ) {
-
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
-
-      const slot =
-        session.roster[
-          Number(body.slot)
-        ];
-
-      if (!slot) {
-
-        return sendJson(res, 400, {
-          error: "Invalid slot."
-        });
-      }
-
-      let x =
-        Number(body.x);
-
-      let y =
-        Number(body.y);
-
-      if (
-        !Number.isFinite(x) ||
-        !Number.isFinite(y)
-      ) {
-
-        return sendJson(res, 400, {
-          error: "Invalid coordinates."
-        });
-      }
-
-      slot.x =
-        Math.max(
-          4,
-          Math.min(96, x)
-        );
-
-      slot.y =
-        Math.max(
-          4,
-          Math.min(96, y)
-        );
-
-      return sendJson(res, 200, {
-        success: true,
-        slot
-      });
-    }
-
-    /* BENCH */
-
-    if (
-      url.pathname === "/api/bench" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await readBody(req);
-
-      const session =
-        sessions.get(body.session);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      if (
-        body.uid !==
-        session.creatorId
-      ) {
-
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
-
-      const slot =
-        session.roster[
-          Number(body.slot)
-        ];
-
-      if (!slot) {
-
-        return sendJson(res, 400, {
-          error: "Invalid player."
-        });
-      }
-
-      slot.bench =
-        Boolean(body.bench);
-
-      return sendJson(res, 200, {
-        success: true,
-        slot
-      });
-    }
-
-    /* FINISH */
-
-    if (
-      url.pathname.startsWith("/api/finish/") &&
-      req.method === "POST"
-    ) {
-
-      const id =
-        url.pathname.split("/")[3];
-
-      const session =
-        sessions.get(id);
-
-      if (!session) {
-
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      const body =
-        await readBody(req);
-
-      if (
-        body.uid !==
-        session.creatorId
-      ) {
-
-        return sendJson(res, 403, {
-          error: "You cannot finish this lineup."
-        });
-      }
-
-      session.finished = true;
-
-      const image =
-        await createPitchImage(session);
-
-      const attachment =
-        new AttachmentBuilder(
-          image,
+        return sendJson(
+          res,
+          200,
           {
-            name: "newcastle-lineup.png"
+            success: true,
+            slot
           }
         );
-
-      const playing =
-        session.roster.filter(
-          p =>
-            p.userId &&
-            !p.bench
-        );
-
-      const bench =
-        session.roster.filter(
-          p =>
-            p.userId &&
-            p.bench
-        );
-
-      let text =
-        "**NEWCASTLE LINEUP TODAY ENJOY**\n\n";
-
-      if (playing.length) {
-
-        text +=
-          playing
-            .map(
-              p =>
-                `**${p.position}** — ${p.name}`
-            )
-            .join("\n");
       }
 
-      if (bench.length) {
+      /* POSITION */
 
-        text +=
-          "\n\n**BENCH**\n" +
-          bench
-            .map(
-              p =>
-                `• ${p.name} — ${p.position}`
-            )
-            .join("\n");
+      if (
+        url.pathname === "/api/position" &&
+        req.method === "POST"
+      ) {
+
+        const body =
+          await readBody(req);
+
+        const session =
+          sessions.get(
+            body.session
+          );
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Session not found"
+            }
+          );
+        }
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot edit this lineup."
+            }
+          );
+        }
+
+        const slot =
+          session.roster[
+            Number(body.slot)
+          ];
+
+        if (!slot) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Invalid slot."
+            }
+          );
+        }
+
+        const position =
+          String(
+            body.position || ""
+          )
+            .trim()
+            .slice(0, 20);
+
+        if (!position) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Position cannot be empty."
+            }
+          );
+        }
+
+        slot.position =
+          position;
+
+        return sendJson(
+          res,
+          200,
+          {
+            success: true,
+            slot
+          }
+        );
       }
 
-      try {
+      /* MOVE */
+
+      if (
+        url.pathname === "/api/move" &&
+        req.method === "POST"
+      ) {
+
+        const body =
+          await readBody(req);
+
+        const session =
+          sessions.get(
+            body.session
+          );
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Session not found"
+            }
+          );
+        }
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot edit this lineup."
+            }
+          );
+        }
+
+        const slot =
+          session.roster[
+            Number(body.slot)
+          ];
+
+        if (!slot) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Invalid slot."
+            }
+          );
+        }
+
+        let x =
+          Number(body.x);
+
+        let y =
+          Number(body.y);
+
+        if (
+          !Number.isFinite(x) ||
+          !Number.isFinite(y)
+        ) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Invalid coordinates."
+            }
+          );
+        }
+
+        slot.x =
+          Math.max(
+            4,
+            Math.min(96, x)
+          );
+
+        slot.y =
+          Math.max(
+            4,
+            Math.min(96, y)
+          );
+
+        return sendJson(
+          res,
+          200,
+          {
+            success: true,
+            slot
+          }
+        );
+      }
+
+      /* BENCH */
+
+      if (
+        url.pathname === "/api/bench" &&
+        req.method === "POST"
+      ) {
+
+        const body =
+          await readBody(req);
+
+        const session =
+          sessions.get(
+            body.session
+          );
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Session not found"
+            }
+          );
+        }
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot edit this lineup."
+            }
+          );
+        }
+
+        const slot =
+          session.roster[
+            Number(body.slot)
+          ];
+
+        if (!slot) {
+
+          return sendJson(
+            res,
+            400,
+            {
+              error:
+                "Invalid player."
+            }
+          );
+        }
+
+        slot.bench =
+          Boolean(body.bench);
+
+        return sendJson(
+          res,
+          200,
+          {
+            success: true,
+            slot
+          }
+        );
+      }
+
+      /* FINISH */
+
+      if (
+        url.pathname.startsWith(
+          "/api/finish/"
+        ) &&
+        req.method === "POST"
+      ) {
+
+        const id =
+          url.pathname.split("/")[3];
+
+        const session =
+          sessions.get(id);
+
+        if (!session) {
+
+          return sendJson(
+            res,
+            404,
+            {
+              error:
+                "Session not found"
+            }
+          );
+        }
+
+        const body =
+          await readBody(req);
+
+        if (
+          body.uid !==
+          session.creatorId
+        ) {
+
+          return sendJson(
+            res,
+            403,
+            {
+              error:
+                "You cannot finish this lineup."
+            }
+          );
+        }
+
+        session.finished = true;
+
+        const image =
+          await createPitchImage(
+            session
+          );
+
+        const attachment =
+          new AttachmentBuilder(
+            image,
+            {
+              name:
+                "newcastle-lineup.png"
+            }
+          );
+
+        const playing =
+          session.roster.filter(
+            p =>
+              p.userId &&
+              !p.bench
+          );
+
+        const bench =
+          session.roster.filter(
+            p =>
+              p.userId &&
+              p.bench
+          );
+
+        let text =
+          "**NEWCASTLE LINEUP TODAY ENJOY**\n\n";
+
+        if (playing.length) {
+
+          text +=
+            playing
+              .map(
+                p =>
+                  `**${p.position}** — ${p.name}`
+              )
+              .join("\n");
+        }
+
+        if (bench.length) {
+
+          text +=
+            "\n\n**BENCH**\n" +
+            bench
+              .map(
+                p =>
+                  `• ${p.name} — ${p.position}`
+              )
+              .join("\n");
+        }
 
         const channel =
           await client.channels.fetch(
@@ -925,42 +1106,38 @@ const server =
           files: [attachment]
         });
 
-      } catch (error) {
-
-        console.error(
-          "Discord send error:",
-          error
+        return sendJson(
+          res,
+          200,
+          {
+            success: true
+          }
         );
-
-        return sendJson(res, 500, {
-          error:
-            "Could not send lineup to Discord."
-        });
       }
 
-      return sendJson(res, 200, {
-        success: true
-      });
+      return sendHtml(
+        res,
+        404,
+        errorPage("Page not found.")
+      );
+
+    } catch (error) {
+
+      console.error(
+        "HTTP error:",
+        error
+      );
+
+      return sendJson(
+        res,
+        500,
+        {
+          error:
+            "Internal server error."
+        }
+      );
     }
-
-    return sendHtml(
-      res,
-      404,
-      errorPage("Page not found.")
-    );
-
-  } catch (error) {
-
-    console.error(
-      "HTTP error:",
-      error
-    );
-
-    return sendJson(res, 500, {
-      error: "Internal server error."
-    });
-  }
-});
+  });
 
 server.listen(
   PORT,
@@ -1070,7 +1247,9 @@ function readBody(req) {
   );
 }
 
-function errorPage(message) {
+function errorPage(
+  message
+) {
 
   return `
 <!DOCTYPE html>
@@ -1103,21 +1282,20 @@ text-align:center;
 <p>${escapeHtml(message)}</p>
 </div>
 </body>
-</html>
-`;
+</html>`;
 }
 
 /* =========================
-   DOWNLOAD AVATAR
+   DISCORD AVATAR FETCH
 ========================= */
 
-async function getAvatarDataUri(url) {
+async function avatarToDataUri(
+  url
+) {
+
+  if (!url) return null;
 
   try {
-
-    if (!url) {
-      return null;
-    }
 
     const response =
       await fetch(url);
@@ -1131,25 +1309,15 @@ async function getAvatarDataUri(url) {
         await response.arrayBuffer()
       );
 
-    /*
-     * Convert the Discord avatar to PNG
-     * so SVG can safely embed it.
-     */
-
-    const png =
-      await sharp(buffer)
-        .resize(180, 180, {
-          fit: "cover"
-        })
-        .png()
-        .toBuffer();
-
-    return `data:image/png;base64,${png.toString("base64")}`;
+    return (
+      "data:image/png;base64," +
+      buffer.toString("base64")
+    );
 
   } catch (error) {
 
     console.error(
-      "Avatar download error:",
+      "Avatar fetch error:",
       error
     );
 
@@ -1161,11 +1329,12 @@ async function getAvatarDataUri(url) {
    FINAL IMAGE
 ========================= */
 
-async function createPitchImage(session) {
+async function createPitchImage(
+  session
+) {
 
   const width = 1200;
-  const height = 900;
-
+  const height = 950;
   const pitchHeight = 760;
 
   const playing =
@@ -1183,41 +1352,41 @@ async function createPitchImage(session) {
     );
 
   /*
-   * Download every avatar BEFORE
-   * creating the SVG.
-   */
+    Load all profile pictures.
+  */
 
   const avatarMap =
     new Map();
 
-  for (const player of session.roster) {
+  for (
+    const player of
+    [...playing, ...bench]
+  ) {
 
-    if (
-      player.userId &&
-      player.avatar
-    ) {
+    if (!player.avatar) {
+      continue;
+    }
 
-      const avatar =
-        await getAvatarDataUri(
-          player.avatar
-        );
+    const data =
+      await avatarToDataUri(
+        player.avatar
+      );
 
-      if (avatar) {
-
-        avatarMap.set(
-          player.userId,
-          avatar
-        );
-      }
+    if (data) {
+      avatarMap.set(
+        player.avatar,
+        data
+      );
     }
   }
 
   const players =
-    await Promise.all(
-      playing.map(async p => {
+    playing.map(
+      p => {
 
         const x =
-          (p.x / 100) * width;
+          (p.x / 100) *
+          width;
 
         const y =
           (p.y / 100) *
@@ -1225,63 +1394,47 @@ async function createPitchImage(session) {
 
         const avatar =
           avatarMap.get(
-            p.userId
+            p.avatar
           );
 
-        let avatarSvg = "";
-
-        if (avatar) {
-
-          avatarSvg = `
+        const avatarImage =
+          avatar
+            ? `
 <defs>
-<clipPath id="clip-${escapeSvg(p.userId)}">
+<clipPath id="clip${p.slot}">
 <circle
 cx="${x}"
 cy="${y}"
-r="31"
+r="34"
 />
 </clipPath>
 </defs>
 
 <image
 href="${avatar}"
-x="${x - 31}"
-y="${y - 31}"
-width="62"
-height="62"
+x="${x - 34}"
+y="${y - 34}"
+width="68"
+height="68"
 preserveAspectRatio="xMidYMid slice"
-clip-path="url(#clip-${escapeSvg(p.userId)})"
+clip-path="url(#clip${p.slot})"
 />
-
-<circle
-cx="${x}"
-cy="${y}"
-r="34"
-fill="none"
-stroke="white"
-stroke-width="4"
-/>
-`;
-
-        } else {
-
-          avatarSvg = `
+`
+            : `
 <circle
 cx="${x}"
 cy="${y}"
 r="34"
 fill="#6f7772"
-stroke="white"
-stroke-width="4"
 />
 
 <text
 x="${x}"
-y="${y + 7}"
+y="${y + 8}"
 text-anchor="middle"
 fill="white"
 font-family="Arial"
-font-size="22"
+font-size="24"
 font-weight="bold"
 >
 ${escapeSvg(
@@ -1291,12 +1444,20 @@ ${escapeSvg(
 )}
 </text>
 `;
-        }
 
         return `
 <g>
 
-${avatarSvg}
+${avatarImage}
+
+<circle
+cx="${x}"
+cy="${y}"
+r="34"
+fill="none"
+stroke="white"
+stroke-width="4"
+/>
 
 <rect
 x="${x - 70}"
@@ -1330,37 +1491,47 @@ font-family="Arial"
 font-size="13"
 font-weight="bold"
 >
-${escapeSvg(p.position)}
+${escapeSvg(
+  p.position
+)}
 </text>
 
-</g>
-`;
-      })
-    );
+</g>`;
+      }
+    ).join("");
+
+  /*
+    BENCH
+  */
 
   const benchPlayers =
-    await Promise.all(
-      bench.map(
-        async (p, i) => {
+    bench.map(
+      (p, i) => {
 
-          const x =
-            70 + i * 180;
+        const x =
+          100 +
+          (i % 6) * 190;
 
-          const avatar =
-            avatarMap.get(
-              p.userId
-            );
+        const row =
+          Math.floor(i / 6);
 
-          let avatarSvg = "";
+        const y =
+          825 +
+          row * 60;
 
-          if (avatar) {
+        const avatar =
+          avatarMap.get(
+            p.avatar
+          );
 
-            avatarSvg = `
+        const avatarImage =
+          avatar
+            ? `
 <defs>
-<clipPath id="bench-${escapeSvg(p.userId)}">
+<clipPath id="benchclip${p.slot}">
 <circle
 cx="${x}"
-cy="830"
+cy="${y}"
 r="22"
 />
 </clipPath>
@@ -1369,42 +1540,28 @@ r="22"
 <image
 href="${avatar}"
 x="${x - 22}"
-y="808"
+y="${y - 22}"
 width="44"
 height="44"
 preserveAspectRatio="xMidYMid slice"
-clip-path="url(#bench-${escapeSvg(p.userId)})"
+clip-path="url(#benchclip${p.slot})"
 />
-
+`
+            : `
 <circle
 cx="${x}"
-cy="830"
-r="25"
-fill="none"
-stroke="white"
-stroke-width="3"
-/>
-`;
-
-          } else {
-
-            avatarSvg = `
-<circle
-cx="${x}"
-cy="830"
-r="25"
+cy="${y}"
+r="22"
 fill="#6f7772"
-stroke="white"
-stroke-width="3"
 />
 
 <text
 x="${x}"
-y="836"
+y="${y + 6}"
 text-anchor="middle"
 fill="white"
 font-family="Arial"
-font-size="17"
+font-size="16"
 font-weight="bold"
 >
 ${escapeSvg(
@@ -1414,43 +1571,49 @@ ${escapeSvg(
 )}
 </text>
 `;
-          }
 
-          return `
+        return `
 <g>
 
-${avatarSvg}
+${avatarImage}
+
+<circle
+cx="${x}"
+cy="${y}"
+r="22"
+fill="none"
+stroke="white"
+stroke-width="3"
+/>
 
 <text
-x="${x}"
-y="870"
-text-anchor="middle"
+x="${x + 32}"
+y="${y + 4}"
 fill="white"
 font-family="Arial"
 font-size="13"
 font-weight="bold"
 >
 ${escapeSvg(
-  p.name || "Player"
+  p.name
 )}
 </text>
 
 <text
-x="${x}"
-y="888"
-text-anchor="middle"
+x="${x + 32}"
+y="${y + 21}"
 fill="#d9e0db"
 font-family="Arial"
-font-size="11"
+font-size="10"
 >
-${escapeSvg(p.position)}
+${escapeSvg(
+  p.position
+)}
 </text>
 
-</g>
-`;
-        }
-      )
-    );
+</g>`;
+      }
+    ).join("");
 
   const svg = `
 <svg
@@ -1469,6 +1632,7 @@ y1="0"
 x2="0"
 y2="1"
 >
+
 <stop
 offset="0%"
 stop-color="#247b42"
@@ -1483,6 +1647,7 @@ stop-color="#1f713c"
 offset="100%"
 stop-color="#247b42"
 />
+
 </linearGradient>
 
 </defs>
@@ -1559,16 +1724,16 @@ height="60"
 
 </g>
 
-${players.join("")}
+${players}
 
 <rect
 x="18"
 y="770"
 width="1164"
-height="112"
+height="160"
 rx="12"
 fill="#07130c"
-opacity=".9"
+opacity=".95"
 />
 
 <text
@@ -1583,10 +1748,9 @@ font-weight="bold"
 BENCH
 </text>
 
-${benchPlayers.join("")}
+${benchPlayers}
 
-</svg>
-`;
+</svg>`;
 
   return sharp(
     Buffer.from(svg)
@@ -1599,7 +1763,9 @@ ${benchPlayers.join("")}
    PITCH PAGE
 ========================= */
 
-function pitchPage(session) {
+function pitchPage(
+  session
+) {
 
   const original =
     JSON.stringify(
@@ -1612,6 +1778,7 @@ function pitchPage(session) {
     );
 
   return `<!DOCTYPE html>
+
 <html>
 
 <head>
@@ -1731,29 +1898,27 @@ to bottom,
 );
 
 box-shadow:
-0 20px 60px rgba(0,0,0,.5);
+0 20px 60px
+rgba(0,0,0,.5);
 }
 
 /* GRID */
 
 .pitch.grid-on::after{
-
 content:"";
-
 position:absolute;
-
 inset:0;
 
 background-image:
-
 linear-gradient(
-rgba(255,255,255,.10) 1px,
+rgba(255,255,255,.10)
+1px,
 transparent 1px
 ),
-
 linear-gradient(
 90deg,
-rgba(255,255,255,.10) 1px,
+rgba(255,255,255,.10)
+1px,
 transparent 1px
 );
 
@@ -1761,7 +1926,6 @@ background-size:
 5% 5%;
 
 pointer-events:none;
-
 z-index:2;
 }
 
@@ -1770,7 +1934,9 @@ position:absolute;
 left:0;
 right:0;
 top:50%;
-border-top:3px solid rgba(255,255,255,.85);
+border-top:
+3px solid
+rgba(255,255,255,.85);
 }
 
 .center-circle{
@@ -1779,7 +1945,8 @@ left:50%;
 top:50%;
 width:150px;
 height:150px;
-transform:translate(-50%,-50%);
+transform:
+translate(-50%,-50%);
 border:3px solid white;
 border-radius:50%;
 }
@@ -1790,7 +1957,8 @@ left:50%;
 top:50%;
 width:8px;
 height:8px;
-transform:translate(-50%,-50%);
+transform:
+translate(-50%,-50%);
 background:white;
 border-radius:50%;
 }
@@ -1798,41 +1966,51 @@ border-radius:50%;
 .box{
 position:absolute;
 left:50%;
-transform:translateX(-50%);
+transform:
+translateX(-50%);
 width:36%;
 height:18%;
-border-left:3px solid white;
-border-right:3px solid white;
+border-left:
+3px solid white;
+border-right:
+3px solid white;
 }
 
 .box.top{
 top:0;
-border-bottom:3px solid white;
+border-bottom:
+3px solid white;
 }
 
 .box.bottom{
 bottom:0;
-border-top:3px solid white;
+border-top:
+3px solid white;
 }
 
 .six{
 position:absolute;
 left:50%;
-transform:translateX(-50%);
+transform:
+translateX(-50%);
 width:17%;
 height:8%;
-border-left:3px solid white;
-border-right:3px solid white;
+border-left:
+3px solid white;
+border-right:
+3px solid white;
 }
 
 .six.top{
 top:0;
-border-bottom:3px solid white;
+border-bottom:
+3px solid white;
 }
 
 .six.bottom{
 bottom:0;
-border-top:3px solid white;
+border-top:
+3px solid white;
 }
 
 /* PLAYERS */
@@ -1841,7 +2019,8 @@ border-top:3px solid white;
 position:absolute;
 width:88px;
 min-height:90px;
-transform:translate(-50%,-50%);
+transform:
+translate(-50%,-50%);
 text-align:center;
 z-index:10;
 touch-action:none;
@@ -1867,7 +2046,9 @@ justify-content:center;
 overflow:hidden;
 font-size:20px;
 font-weight:900;
-box-shadow:0 5px 15px rgba(0,0,0,.4);
+box-shadow:
+0 5px 15px
+rgba(0,0,0,.4);
 }
 
 .avatar img{
@@ -1879,7 +2060,8 @@ object-fit:cover;
 .name{
 margin-top:3px;
 padding:3px 6px;
-background:rgba(0,0,0,.78);
+background:
+rgba(0,0,0,.78);
 border-radius:5px;
 font-size:10px;
 font-weight:900;
@@ -1896,7 +2078,8 @@ font-weight:900;
 }
 
 .selected{
-outline:3px solid #facc15;
+outline:
+3px solid #facc15;
 outline-offset:3px;
 border-radius:50%;
 }
@@ -1908,7 +2091,9 @@ width:255px;
 padding:15px;
 border-radius:13px;
 background:#0d1811;
-border:1px solid rgba(255,255,255,.12);
+border:
+1px solid
+rgba(255,255,255,.12);
 }
 
 .panel h2{
@@ -1987,7 +2172,9 @@ margin-top:15px;
 padding:12px;
 border-radius:12px;
 background:#0d1811;
-border:1px solid rgba(255,255,255,.12);
+border:
+1px solid
+rgba(255,255,255,.12);
 }
 
 .bench-title{
@@ -2115,8 +2302,6 @@ overflow:auto;
 
 }
 
-/* SMALL PHONE */
-
 @media(max-width:450px){
 
 .title{
@@ -2154,6 +2339,7 @@ height:100px;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -2263,8 +2449,8 @@ Players snap to the grid.
 
 Use Bench to send a player to the bench.
 
-Click a bench player to return them
-to their original grey circle.
+Click a benched player's grey slot to
+replace them with another player.
 
 </div>
 
@@ -2332,1037 +2518,1253 @@ let benchMode = false;
 let dragging = null;
 
 const pitch =
-document.getElementById("pitch");
+document.getElementById(
+  "pitch"
+);
 
 const players =
-document.getElementById("players");
+document.getElementById(
+  "players"
+);
 
 const members =
-document.getElementById("members");
+document.getElementById(
+  "members"
+);
 
 const benchList =
-document.getElementById("benchList");
+document.getElementById(
+  "benchList"
+);
 
 const statusBox =
-document.getElementById("status");
+document.getElementById(
+  "status"
+);
 
 function escapeHTML(value){
 
-return String(value ?? "")
-.replaceAll("&","&amp;")
-.replaceAll("<","&lt;")
-.replaceAll(">","&gt;")
-.replaceAll('"',"&quot;")
-.replaceAll("'","&#039;");
-
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 async function load(){
 
-try{
+  try{
 
-const response =
-await fetch(
-"/api/session/" +
-encodeURIComponent(SESSION)
-);
+    const response =
+      await fetch(
+        "/api/session/" +
+        encodeURIComponent(
+          SESSION
+        )
+      );
 
-const data =
-await response.json();
+    const data =
+      await response.json();
 
-if(!response.ok){
+    if(!response.ok){
 
-throw new Error(
-data.error ||
-"Could not load lineup."
-);
+      throw new Error(
+        data.error ||
+        "Could not load lineup."
+      );
+    }
 
-}
+    state = data;
 
-state = data;
+    render();
 
-render();
+  }catch(error){
 
-}catch(error){
+    console.error(error);
 
-console.error(error);
-
-document.body.innerHTML =
-"<div style='padding:30px;color:white;font-family:Arial'>" +
-"<h2>❌ Lineup could not be loaded</h2>" +
-"<p>" +
-escapeHTML(error.message) +
-"</p></div>";
-
-}
-
+    document.body.innerHTML =
+      "<div style='padding:30px;color:white;font-family:Arial'>" +
+      "<h2>❌ Lineup could not be loaded</h2>" +
+      "<p>" +
+      escapeHTML(
+        error.message
+      ) +
+      "</p></div>";
+  }
 }
 
 function render(){
 
-renderPlayers();
+  renderPlayers();
 
-renderMembers();
+  renderMembers();
 
-renderBench();
+  renderBench();
 
-updateStatus();
-
+  updateStatus();
 }
+
+/* =========================
+   PLAYERS
+========================= */
 
 function renderPlayers(){
 
-players.innerHTML = "";
+  players.innerHTML = "";
 
-state.roster.forEach(
-(player,index)=>{
+  state.roster.forEach(
+    (player,index) => {
 
-/*
- * IMPORTANT:
- * A benched player is NOT rendered
- * on the pitch.
- *
- * The empty position therefore shows
- * as the original grey circle below.
- */
+      const el =
+        document.createElement(
+          "div"
+        );
 
-const el =
-document.createElement("div");
+      el.className =
+        "player" +
+        (
+          selected === index
+            ? " selected"
+            : ""
+        );
 
-el.className =
-"player" +
-(selected === index
-? " selected"
-: "");
+      el.style.left =
+        player.x + "%";
 
-el.style.left =
-player.x + "%";
+      el.style.top =
+        player.y + "%";
 
-el.style.top =
-player.y + "%";
+      /*
+        IMPORTANT:
 
-let avatar;
+        A benched player DOES NOT
+        disappear from the pitch.
 
-if(
-player.userId &&
-player.avatar
-){
+        Their old slot becomes a
+        grey selectable circle.
+      */
 
-avatar =
-"<div class='avatar'>" +
-"<img src='" +
-escapeHTML(player.avatar) +
-"' draggable='false'>" +
-"</div>";
+      if(player.bench){
 
-}else{
+        el.innerHTML =
+          "<div class='avatar'>?</div>" +
+          "<div class='name'>Select Player</div>" +
+          "<div class='position'>" +
+          escapeHTML(
+            player.position
+          ) +
+          "</div>";
 
-/*
- * Empty slot = grey circle.
- */
+        el.addEventListener(
+          "click",
+          event => {
 
-avatar =
-"<div class='avatar'>?</div>";
+            event.stopPropagation();
 
+            selected = index;
+
+            benchMode = false;
+
+            updateBenchButton();
+
+            renderPlayers();
+
+            updateStatus();
+
+            showMembers();
+          }
+        );
+
+        players.appendChild(el);
+
+        return;
+      }
+
+      /*
+        NORMAL EMPTY SLOT
+      */
+
+      if(!player.userId){
+
+        el.innerHTML =
+          "<div class='avatar'>?</div>" +
+          "<div class='name'>Select Player</div>" +
+          "<div class='position'>" +
+          escapeHTML(
+            player.position
+          ) +
+          "</div>";
+
+        el.addEventListener(
+          "click",
+          event => {
+
+            event.stopPropagation();
+
+            selected = index;
+
+            benchMode = false;
+
+            updateBenchButton();
+
+            renderPlayers();
+
+            updateStatus();
+
+            showMembers();
+          }
+        );
+
+        players.appendChild(el);
+
+        return;
+      }
+
+      /*
+        PLAYER WITH DISCORD ACCOUNT
+      */
+
+      let avatar;
+
+      if(player.avatar){
+
+        avatar =
+          "<div class='avatar'>" +
+          "<img src='" +
+          escapeHTML(
+            player.avatar
+          ) +
+          "' draggable='false'>" +
+          "</div>";
+
+      }else{
+
+        avatar =
+          "<div class='avatar'>?</div>";
+      }
+
+      el.innerHTML =
+        avatar +
+        "<div class='name'>" +
+        escapeHTML(
+          player.name ||
+          "Select Player"
+        ) +
+        "</div>" +
+        "<div class='position'>" +
+        escapeHTML(
+          player.position
+        ) +
+        "</div>";
+
+      /*
+        CLICK
+      */
+
+      el.addEventListener(
+        "click",
+        event => {
+
+          event.stopPropagation();
+
+          if(benchMode){
+
+            sendToBench(index);
+
+            return;
+          }
+
+          selected = index;
+
+          renderPlayers();
+
+          updateStatus();
+
+          showMembers();
+        }
+      );
+
+      /*
+        DOUBLE CLICK
+      */
+
+      el.addEventListener(
+        "dblclick",
+        event => {
+
+          event.stopPropagation();
+
+          moving = false;
+
+          updateMoveButton();
+        }
+      );
+
+      /*
+        DRAG START
+      */
+
+      el.addEventListener(
+        "pointerdown",
+        event => {
+
+          if(!moving) {
+            return;
+          }
+
+          event.preventDefault();
+
+          selected = index;
+
+          dragging = {
+            element: el,
+            index: index,
+            pointerId:
+              event.pointerId
+          };
+
+          el.classList.add(
+            "dragging"
+          );
+
+          try{
+
+            el.setPointerCapture(
+              event.pointerId
+            );
+
+          }catch{}
+        }
+      );
+
+      /*
+        DRAG
+      */
+
+      el.addEventListener(
+        "pointermove",
+        event => {
+
+          if(
+            !dragging ||
+            dragging.element !== el
+          ){
+
+            return;
+          }
+
+          event.preventDefault();
+
+          const rect =
+            pitch.getBoundingClientRect();
+
+          let x =
+            (
+              (
+                event.clientX -
+                rect.left
+              ) /
+              rect.width
+            ) * 100;
+
+          let y =
+            (
+              (
+                event.clientY -
+                rect.top
+              ) /
+              rect.height
+            ) * 100;
+
+          /*
+            GRID SNAP
+          */
+
+          x =
+            Math.round(
+              x / 5
+            ) * 5;
+
+          y =
+            Math.round(
+              y / 5
+            ) * 5;
+
+          x =
+            Math.max(
+              4,
+              Math.min(
+                96,
+                x
+              )
+            );
+
+          y =
+            Math.max(
+              5,
+              Math.min(
+                95,
+                y
+              )
+            );
+
+          el.style.left =
+            x + "%";
+
+          el.style.top =
+            y + "%";
+
+          state.roster[
+            index
+          ].x = x;
+
+          state.roster[
+            index
+          ].y = y;
+        }
+      );
+
+      /*
+        DRAG END
+      */
+
+      el.addEventListener(
+        "pointerup",
+        async event => {
+
+          if(!dragging) {
+            return;
+          }
+
+          try{
+
+            el.releasePointerCapture(
+              event.pointerId
+            );
+
+          }catch{}
+
+          el.classList.remove(
+            "dragging"
+          );
+
+          const index =
+            dragging.index;
+
+          dragging = null;
+
+          await saveMove(
+            index
+          );
+        }
+      );
+
+      players.appendChild(el);
+    }
+  );
 }
 
-el.innerHTML =
-avatar +
-
-"<div class='name'>" +
-escapeHTML(
-player.userId
-? player.name
-: "Select Player"
-) +
-"</div>" +
-
-"<div class='position'>" +
-escapeHTML(player.position) +
-"</div>";
-
-/* CLICK */
-
-el.addEventListener(
-"click",
-event=>{
-
-event.stopPropagation();
-
-if(benchMode){
-
-if(player.userId){
-
-sendToBench(index);
-
-}
-
-return;
-
-}
-
-selected = index;
-
-renderPlayers();
-
-updateStatus();
-
-showMembers();
-
-});
-
-/* DOUBLE CLICK STOP */
-
-el.addEventListener(
-"dblclick",
-event=>{
-
-event.stopPropagation();
-
-moving = false;
-
-updateMoveButton();
-
-});
-
-/* DRAG */
-
-el.addEventListener(
-"pointerdown",
-event=>{
-
-if(!moving) return;
-
-event.preventDefault();
-
-selected = index;
-
-dragging = {
-element:el,
-index:index,
-pointerId:event.pointerId
-};
-
-el.classList.add(
-"dragging"
-);
-
-try{
-
-el.setPointerCapture(
-event.pointerId
-);
-
-}catch{}
-
-});
-
-el.addEventListener(
-"pointermove",
-event=>{
-
-if(
-!dragging ||
-dragging.element !== el
-){
-
-return;
-}
-
-event.preventDefault();
-
-const rect =
-pitch.getBoundingClientRect();
-
-let x =
-((event.clientX - rect.left) /
-rect.width) * 100;
-
-let y =
-((event.clientY - rect.top) /
-rect.height) * 100;
-
-/*
- * GRID SNAP
- */
-
-x =
-Math.round(x / 5) * 5;
-
-y =
-Math.round(y / 5) * 5;
-
-x =
-Math.max(
-4,
-Math.min(96,x)
-);
-
-y =
-Math.max(
-5,
-Math.min(95,y)
-);
-
-el.style.left =
-x + "%";
-
-el.style.top =
-y + "%";
-
-state.roster[index].x =
-x;
-
-state.roster[index].y =
-y;
-
-});
-
-el.addEventListener(
-"pointerup",
-async event=>{
-
-if(!dragging) return;
-
-try{
-
-el.releasePointerCapture(
-event.pointerId
-);
-
-}catch{}
-
-el.classList.remove(
-"dragging"
-);
-
-const index =
-dragging.index;
-
-dragging = null;
-
-await saveMove(index);
-
-});
-
-players.appendChild(el);
-
-});
-
-}
+/* =========================
+   MEMBERS
+========================= */
 
 function renderMembers(){
 
-members.innerHTML = "";
+  members.innerHTML = "";
 
-if(!state.serverMembers){
-return;
+  if(
+    !state.serverMembers
+  ) {
+    return;
+  }
+
+  state.serverMembers.forEach(
+    member => {
+
+      const el =
+        document.createElement(
+          "div"
+        );
+
+      el.className =
+        "member";
+
+      el.innerHTML =
+        "<img src='" +
+        escapeHTML(
+          member.avatar
+        ) +
+        "'>" +
+        "<div class='member-name'>" +
+        escapeHTML(
+          member.name
+        ) +
+        "</div>";
+
+      el.onclick =
+        () =>
+          assignPlayer(
+            member
+          );
+
+      members.appendChild(
+        el
+      );
+    }
+  );
 }
 
-state.serverMembers.forEach(
-member=>{
-
-const el =
-document.createElement("div");
-
-el.className =
-"member";
-
-el.innerHTML =
-"<img src='" +
-escapeHTML(member.avatar) +
-"'>" +
-
-"<div class='member-name'>" +
-escapeHTML(member.name) +
-"</div>";
-
-el.onclick =
-()=>assignPlayer(member);
-
-members.appendChild(el);
-
-});
-
-}
+/* =========================
+   BENCH
+========================= */
 
 function renderBench(){
 
-benchList.innerHTML = "";
+  benchList.innerHTML = "";
 
-const bench =
-state.roster.filter(
-p =>
-p.bench &&
-p.userId
-);
+  const bench =
+    state.roster.filter(
+      p =>
+        p.bench &&
+        p.userId
+    );
 
-if(!bench.length){
+  if(!bench.length){
 
-benchList.innerHTML =
-"<div class='bench-empty'>" +
-"No players on the bench." +
-"</div>";
+    benchList.innerHTML =
+      "<div class='bench-empty'>" +
+      "No players on the bench." +
+      "</div>";
 
-return;
+    return;
+  }
 
-}
+  bench.forEach(
+    player => {
 
-bench.forEach(
-player=>{
+      const el =
+        document.createElement(
+          "div"
+        );
 
-const el =
-document.createElement("div");
+      el.className =
+        "bench-player";
 
-el.className =
-"bench-player";
+      el.innerHTML =
+        "<img src='" +
+        escapeHTML(
+          player.avatar
+        ) +
+        "'>" +
+        "<div>" +
+        "<div class='bench-player-name'>" +
+        escapeHTML(
+          player.name
+        ) +
+        "</div>" +
+        "<div style='font-size:9px;color:#9ca89f'>" +
+        escapeHTML(
+          player.position
+        ) +
+        "</div>" +
+        "</div>";
 
-el.innerHTML =
-"<img src='" +
-escapeHTML(player.avatar) +
-"'>" +
+      /*
+        Clicking a bench player
+        removes them from bench
+        and puts them back into
+        their original pitch slot.
+      */
 
-"<div>" +
+      el.onclick =
+        () =>
+          removeFromBench(
+            player.slot
+          );
 
-"<div class='bench-player-name'>" +
-escapeHTML(player.name) +
-"</div>" +
-
-"<div style='font-size:9px;color:#9ca89f'>" +
-escapeHTML(player.position) +
-"</div>" +
-
-"</div>";
-
-/*
- * Click bench player:
- * REMOVE FROM BENCH.
- */
-
-el.onclick =
-()=>removeFromBench(
-player.slot
-);
-
-benchList.appendChild(el);
-
-});
-
+      benchList.appendChild(
+        el
+      );
+    }
+  );
 }
 
 function showMembers(){
 
-members.scrollIntoView({
-behavior:"smooth",
-block:"nearest"
-});
-
+  members.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest"
+  });
 }
+
+/* =========================
+   STATUS
+========================= */
 
 function updateStatus(){
 
-if(selected === null){
+  if(selected === null){
 
-statusBox.textContent =
-"No player selected.";
+    statusBox.textContent =
+      "No player selected.";
 
-return;
+    return;
+  }
 
+  const player =
+    state.roster[
+      selected
+    ];
+
+  statusBox.innerHTML =
+    "<b>Selected:</b> " +
+    escapeHTML(
+      player.name ||
+      "Empty slot"
+    ) +
+    "<br>" +
+    "<b>Position:</b> " +
+    escapeHTML(
+      player.position
+    ) +
+    (
+      player.bench
+        ? "<br><b>Status:</b> On Bench"
+        : ""
+    );
 }
 
-const player =
-state.roster[selected];
+/* =========================
+   ASSIGN PLAYER
+========================= */
 
-statusBox.innerHTML =
-"<b>Selected:</b> " +
+async function assignPlayer(
+  member
+){
 
-escapeHTML(
-player.name ||
-"Empty slot"
-) +
+  if(selected === null){
 
-"<br>" +
+    alert(
+      "Click a grey player circle first."
+    );
 
-"<b>Position:</b> " +
+    return;
+  }
 
-escapeHTML(
-player.position
-) +
+  try{
 
-(player.bench
-? "<br><b>Status:</b> On Bench"
-: "");
+    const response =
+      await fetch(
+        "/api/assign",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              session: SESSION,
+              uid: CREATOR,
+              slot: selected,
+              userId: member.id
+            })
+        }
+      );
 
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error ||
+        "Could not assign player."
+      );
+    }
+
+    state.roster[
+      selected
+    ] = data.slot;
+
+    benchMode = false;
+
+    updateBenchButton();
+
+    render();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+  }
 }
 
-async function assignPlayer(member){
-
-if(selected === null){
-
-alert(
-"Click a grey player circle first."
-);
-
-return;
-
-}
-
-try{
-
-const response =
-await fetch(
-"/api/assign",
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-session:SESSION,
-uid:CREATOR,
-slot:selected,
-userId:member.id
-})
-});
-
-const data =
-await response.json();
-
-if(!response.ok){
-
-throw new Error(
-data.error ||
-"Could not assign player."
-);
-
-}
-
-state.roster[selected] =
-data.slot;
-
-render();
-
-}catch(error){
-
-alert(error.message);
-
-}
-
-}
+/* =========================
+   POSITION
+========================= */
 
 async function changePosition(){
 
-if(selected === null){
+  if(selected === null){
 
-alert(
-"Select a player first."
-);
+    alert(
+      "Select a player first."
+    );
 
-return;
+    return;
+  }
 
+  const player =
+    state.roster[
+      selected
+    ];
+
+  const position =
+    prompt(
+      "Type the position:",
+      player.position
+    );
+
+  if(position === null) {
+    return;
+  }
+
+  const clean =
+    position.trim();
+
+  if(!clean) {
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/position",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              session: SESSION,
+              uid: CREATOR,
+              slot: selected,
+              position: clean
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error ||
+        "Could not change position."
+      );
+    }
+
+    state.roster[
+      selected
+    ] = data.slot;
+
+    render();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+  }
 }
 
-const player =
-state.roster[selected];
-
-const position =
-prompt(
-"Type the position:",
-player.position
-);
-
-if(position === null){
-return;
-}
-
-const clean =
-position.trim();
-
-if(!clean){
-return;
-}
-
-try{
-
-const response =
-await fetch(
-"/api/position",
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-session:SESSION,
-uid:CREATOR,
-slot:selected,
-position:clean
-})
-});
-
-const data =
-await response.json();
-
-if(!response.ok){
-
-throw new Error(
-data.error ||
-"Could not change position."
-);
-
-}
-
-state.roster[selected] =
-data.slot;
-
-render();
-
-}catch(error){
-
-alert(error.message);
-
-}
-
-}
+/* =========================
+   MOVE
+========================= */
 
 function toggleMove(){
 
-if(selected === null){
+  if(selected === null){
 
-alert(
-"Select a player first."
-);
+    alert(
+      "Select a player first."
+    );
 
-return;
+    return;
+  }
 
-}
+  moving = !moving;
 
-moving = !moving;
+  if(moving){
 
-if(moving){
+    benchMode = false;
 
-benchMode = false;
+    updateBenchButton();
 
-updateBenchButton();
+    pitch.classList.add(
+      "grid-on"
+    );
 
-pitch.classList.add(
-"grid-on"
-);
+  }else{
 
-}else{
+    pitch.classList.add(
+      "grid-on"
+    );
+  }
 
-/*
- * GRID STAYS ON.
- */
-
-pitch.classList.add(
-"grid-on"
-);
-
-}
-
-updateMoveButton();
-
+  updateMoveButton();
 }
 
 function updateMoveButton(){
 
-const button =
-document.getElementById(
-"moveButton"
-);
+  const button =
+    document.getElementById(
+      "moveButton"
+    );
 
-if(moving){
+  if(moving){
 
-button.classList.add(
-"active"
-);
+    button.classList.add(
+      "active"
+    );
 
-button.textContent =
-"✓ Moving — Grid Snap ON";
+    button.textContent =
+      "✓ Moving — Grid Snap ON";
 
-}else{
+  }else{
 
-button.classList.remove(
-"active"
-);
+    button.classList.remove(
+      "active"
+    );
 
-button.textContent =
-"↔ Move Player";
-
+    button.textContent =
+      "↔ Move Player";
+  }
 }
 
-}
+/* =========================
+   BENCH MODE
+========================= */
 
 function toggleBenchMode(){
 
-if(selected === null){
+  if(selected === null){
 
-alert(
-"Select a player first, then click Bench."
-);
+    alert(
+      "Select a player first, then click Bench."
+    );
 
-return;
+    return;
+  }
 
-}
+  /*
+    Only actual players can be
+    put on bench.
+  */
 
-benchMode = !benchMode;
+  if(
+    !state.roster[selected].userId
+  ){
 
-if(benchMode){
+    alert(
+      "Select a player first."
+    );
 
-moving = false;
+    return;
+  }
 
-updateMoveButton();
+  /*
+    If already on bench, don't
+    bench again.
+  */
 
-}
+  if(
+    state.roster[selected].bench
+  ){
 
-updateBenchButton();
+    alert(
+      "That player is already on the bench."
+    );
 
+    return;
+  }
+
+  benchMode = !benchMode;
+
+  if(benchMode){
+
+    moving = false;
+
+    updateMoveButton();
+  }
+
+  updateBenchButton();
 }
 
 function updateBenchButton(){
 
-const button =
-document.getElementById(
-"benchButton"
-);
+  const button =
+    document.getElementById(
+      "benchButton"
+    );
 
-if(benchMode){
+  if(benchMode){
 
-button.classList.add(
-"bench-active"
-);
+    button.classList.add(
+      "bench-active"
+    );
 
-button.textContent =
-"🪑 Bench Mode — click player";
+    button.textContent =
+      "🪑 Bench Mode — click player";
 
-}else{
+  }else{
 
-button.classList.remove(
-"bench-active"
-);
+    button.classList.remove(
+      "bench-active"
+    );
 
-button.textContent =
-"🪑 Bench Player";
-
+    button.textContent =
+      "🪑 Bench Player";
+  }
 }
 
+/* =========================
+   SEND TO BENCH
+========================= */
+
+async function sendToBench(
+  index
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/bench",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              session: SESSION,
+              uid: CREATOR,
+              slot: index,
+              bench: true
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error ||
+        "Could not move player to bench."
+      );
+    }
+
+    /*
+      The player remains in the roster
+      with their name/avatar, but the
+      pitch renderer now creates a
+      grey empty circle at this slot.
+    */
+
+    state.roster[
+      index
+    ] = data.slot;
+
+    benchMode = false;
+
+    selected = null;
+
+    updateBenchButton();
+
+    render();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+  }
 }
 
-/*
- * SEND PLAYER TO BENCH
- *
- * Their slot stays in the same
- * x/y position, but the player is
- * hidden from the pitch.
- *
- * renderPlayers() then shows the
- * grey empty circle in that position.
- */
+/* =========================
+   REMOVE FROM BENCH
+========================= */
 
-async function sendToBench(index){
+async function removeFromBench(
+  index
+){
 
-try{
+  try{
 
-const response =
-await fetch(
-"/api/bench",
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-session:SESSION,
-uid:CREATOR,
-slot:index,
-bench:true
-})
-});
+    const response =
+      await fetch(
+        "/api/bench",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              session: SESSION,
+              uid: CREATOR,
+              slot: index,
+              bench: false
+            })
+          }
+        }
+      );
 
-const data =
-await response.json();
+    const data =
+      await response.json();
 
-if(!response.ok){
+    if(!response.ok){
 
-throw new Error(
-data.error ||
-"Could not move player to bench."
-);
+      throw new Error(
+        data.error ||
+        "Could not remove player from bench."
+      );
+    }
 
+    state.roster[
+      index
+    ] = data.slot;
+
+    selected = index;
+
+    render();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+  }
 }
 
-state.roster[index] =
-data.slot;
+/* =========================
+   SAVE MOVE
+========================= */
 
-benchMode = false;
+async function saveMove(
+  index
+){
 
-selected = null;
+  const player =
+    state.roster[
+      index
+    ];
 
-updateBenchButton();
+  try{
 
-render();
+    await fetch(
+      "/api/move",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body:
+          JSON.stringify({
+            session: SESSION,
+            uid: CREATOR,
+            slot: index,
+            x: player.x,
+            y: player.y
+          })
+      }
+    );
 
-}catch(error){
+  }catch(error){
 
-alert(error.message);
-
+    console.error(
+      "Move save error:",
+      error
+    );
+  }
 }
 
-}
-
-/*
- * REMOVE FROM BENCH
- *
- * Player returns to the exact
- * pitch slot they originally had.
- */
-
-async function removeFromBench(index){
-
-try{
-
-const response =
-await fetch(
-"/api/bench",
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-session:SESSION,
-uid:CREATOR,
-slot:index,
-bench:false
-})
-});
-
-const data =
-await response.json();
-
-if(!response.ok){
-
-throw new Error(
-data.error ||
-"Could not remove player from bench."
-);
-
-}
-
-state.roster[index] =
-data.slot;
-
-selected = index;
-
-render();
-
-}catch(error){
-
-alert(error.message);
-
-}
-
-}
-
-async function saveMove(index){
-
-const player =
-state.roster[index];
-
-try{
-
-const response =
-await fetch(
-"/api/move",
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-session:SESSION,
-uid:CREATOR,
-slot:index,
-x:player.x,
-y:player.y
-})
-});
-
-if(!response.ok){
-
-console.error(
-"Could not save move."
-);
-
-}
-
-}catch(error){
-
-console.error(
-"Move save error:",
-error
-);
-
-}
-
-}
+/* =========================
+   RESET
+========================= */
 
 async function resetLineup(){
 
-if(
-!confirm(
-"Reset all players?"
-)
-){
+  if(
+    !confirm(
+      "Reset all players?"
+    )
+  ){
+    return;
+  }
 
-return;
+  state.roster.forEach(
+    (player,index) => {
 
+      player.userId =
+        null;
+
+      player.name =
+        "";
+
+      player.avatar =
+        "";
+
+      player.bench =
+        false;
+
+      player.x =
+        ORIGINAL[index].x;
+
+      player.y =
+        ORIGINAL[index].y;
+    }
+  );
+
+  selected = null;
+
+  benchMode = false;
+
+  moving = false;
+
+  updateBenchButton();
+
+  updateMoveButton();
+
+  render();
+
+  await saveAll();
 }
 
-state.roster.forEach(
-(player,index)=>{
-
-player.userId = null;
-
-player.name = "";
-
-player.avatar = "";
-
-player.bench = false;
-
-player.x =
-ORIGINAL[index].x;
-
-player.y =
-ORIGINAL[index].y;
-
-});
-
-selected = null;
-
-moving = false;
-
-benchMode = false;
-
-updateMoveButton();
-
-updateBenchButton();
-
-render();
-
-await saveAll();
-
-}
+/* =========================
+   SAVE ALL
+========================= */
 
 async function saveAll(){
 
-try{
+  try{
 
-const response =
-await fetch(
-"/api/session/" +
-encodeURIComponent(SESSION),
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-uid:CREATOR,
-roster:state.roster
-})
-});
+    await fetch(
+      "/api/session/" +
+      encodeURIComponent(
+        SESSION
+      ),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body:
+          JSON.stringify({
+            uid: CREATOR,
+            roster:
+              state.roster
+          })
+      }
+    );
 
-if(!response.ok){
+  }catch(error){
 
-console.error(
-"Could not save lineup."
-);
-
+    console.error(
+      error
+    );
+  }
 }
 
-}catch(error){
-
-console.error(error);
-
-}
-
-}
+/* =========================
+   FINISH
+========================= */
 
 async function finishLineup(){
 
-if(
-!confirm(
-"Finish this lineup and post it to the Discord channel?"
-)
-){
+  if(
+    !confirm(
+      "Finish this lineup and post it to the Discord channel?"
+    )
+  ){
 
-return;
+    return;
+  }
 
-}
+  await saveAll();
 
-await saveAll();
+  const button =
+    document.querySelector(
+      ".finish"
+    );
 
-const button =
-document.querySelector(
-".finish"
-);
+  button.disabled =
+    true;
 
-button.disabled = true;
+  button.textContent =
+    "Posting...";
 
-button.textContent =
-"Posting...";
+  try{
 
-try{
+    const response =
+      await fetch(
+        "/api/finish/" +
+        encodeURIComponent(
+          SESSION
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              uid: CREATOR
+            })
+        }
+      );
 
-const response =
-await fetch(
-"/api/finish/" +
-encodeURIComponent(SESSION),
-{
-method:"POST",
-headers:{
-"Content-Type":
-"application/json"
-},
-body:JSON.stringify({
-uid:CREATOR
-})
-});
+    const data =
+      await response.json();
 
-const data =
-await response.json();
+    if(!response.ok){
 
-if(!response.ok){
+      throw new Error(
+        data.error ||
+        "Could not finish lineup."
+      );
+    }
 
-throw new Error(
-data.error ||
-"Could not finish lineup."
-);
+    button.textContent =
+      "✓ Posted!";
 
-}
+  }catch(error){
 
-button.textContent =
-"✓ Posted!";
+    button.disabled =
+      false;
 
-}catch(error){
+    button.textContent =
+      "✓ Done";
 
-button.disabled = false;
-
-button.textContent =
-"✓ Done";
-
-alert(error.message);
-
-}
-
+    alert(
+      error.message
+    );
+  }
 }
 
 load();
@@ -3370,5 +3772,6 @@ load();
 </script>
 
 </body>
+
 </html>`;
 }
