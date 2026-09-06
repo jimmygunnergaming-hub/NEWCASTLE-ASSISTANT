@@ -15,19 +15,17 @@ const {
 const TOKEN = process.env.DISCORD_TOKEN;
 const PORT = Number(process.env.PORT) || 3000;
 
-const POSITION_CHANNEL_ID = "1542615989382942756";
-
 if (!TOKEN) {
   console.error("DISCORD_TOKEN is missing.");
   process.exit(1);
 }
 
+const POSITION_CHANNEL_ID = "1542615989382942756";
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.GuildMembers
   ]
 });
 
@@ -56,219 +54,236 @@ function escapeSvg(value = "") {
 }
 
 const formations = {
-  1: [["GK", 50, 88]],
+  1: [["GK",50,88]],
 
   2: [
-    ["GK", 50, 88],
-    ["ST", 50, 18]
+    ["GK",50,88],
+    ["ST",50,18]
   ],
 
   3: [
-    ["GK", 50, 88],
-    ["ST", 32, 20],
-    ["ST", 68, 20]
+    ["GK",50,88],
+    ["ST",32,20],
+    ["ST",68,20]
   ],
 
   4: [
-    ["GK", 50, 88],
-    ["LB", 25, 60],
-    ["RB", 75, 60],
-    ["ST", 50, 18]
+    ["GK",50,88],
+    ["LB",25,60],
+    ["RB",75,60],
+    ["ST",50,18]
   ],
 
   5: [
-    ["GK", 50, 88],
-    ["LB", 18, 62],
-    ["CB", 50, 62],
-    ["RB", 82, 62],
-    ["ST", 50, 18]
+    ["GK",50,88],
+    ["LB",18,62],
+    ["CB",50,62],
+    ["RB",82,62],
+    ["ST",50,18]
   ],
 
   6: [
-    ["GK", 50, 88],
-    ["LB", 15, 64],
-    ["CB", 38, 64],
-    ["CB", 62, 64],
-    ["RB", 85, 64],
-    ["ST", 50, 18]
+    ["GK",50,88],
+    ["LB",15,64],
+    ["CB",38,64],
+    ["CB",62,64],
+    ["RB",85,64],
+    ["ST",50,18]
   ],
 
   7: [
-    ["GK", 50, 88],
-    ["LB", 12, 64],
-    ["CB", 34, 66],
-    ["CB", 66, 66],
-    ["RB", 88, 64],
-    ["LW", 30, 35],
-    ["ST", 68, 22]
+    ["GK",50,88],
+    ["LB",12,64],
+    ["CB",34,66],
+    ["CB",66,66],
+    ["RB",88,64],
+    ["LW",30,35],
+    ["ST",68,22]
   ],
 
   8: [
-    ["GK", 50, 88],
-    ["LB", 10, 65],
-    ["CB", 30, 67],
-    ["CB", 70, 67],
-    ["RB", 90, 65],
-    ["LM", 25, 38],
-    ["RM", 75, 38],
-    ["ST", 50, 18]
+    ["GK",50,88],
+    ["LB",10,65],
+    ["CB",30,67],
+    ["CB",70,67],
+    ["RB",90,65],
+    ["LM",25,38],
+    ["RM",75,38],
+    ["ST",50,18]
   ],
 
   9: [
-    ["GK", 50, 88],
-    ["LB", 9, 66],
-    ["CB", 29, 69],
-    ["CB", 50, 69],
-    ["CB", 71, 69],
-    ["RB", 91, 66],
-    ["LW", 23, 37],
-    ["RW", 77, 37],
-    ["ST", 50, 17]
+    ["GK",50,88],
+    ["LB",9,66],
+    ["CB",29,69],
+    ["CB",50,69],
+    ["CB",71,69],
+    ["RB",91,66],
+    ["LW",23,37],
+    ["RW",77,37],
+    ["ST",50,17]
   ],
 
   10: [
-    ["GK", 50, 88],
-    ["LB", 8, 67],
-    ["CB", 27, 70],
-    ["CB", 50, 70],
-    ["CB", 73, 70],
-    ["RB", 92, 67],
-    ["LM", 22, 43],
-    ["RM", 78, 43],
-    ["LW", 34, 23],
-    ["ST", 66, 20]
+    ["GK",50,88],
+    ["LB",8,67],
+    ["CB",27,70],
+    ["CB",50,70],
+    ["CB",73,70],
+    ["RB",92,67],
+    ["LM",22,43],
+    ["RM",78,43],
+    ["LW",34,23],
+    ["ST",66,20]
   ],
 
   11: [
-    ["GK", 50, 90],
-    ["LB", 8, 69],
-    ["CB", 28, 72],
-    ["CB", 50, 72],
-    ["CB", 72, 72],
-    ["RB", 92, 69],
-    ["LM", 17, 46],
-    ["CM", 38, 47],
-    ["CM", 62, 47],
-    ["RM", 83, 46],
-    ["ST", 50, 17]
+    ["GK",50,90],
+    ["LB",8,69],
+    ["CB",28,72],
+    ["CB",50,72],
+    ["CB",72,72],
+    ["RB",92,69],
+    ["LM",17,46],
+    ["CM",38,47],
+    ["CM",62,47],
+    ["RM",83,46],
+    ["ST",50,17]
   ]
 };
 
-const POSITION_NAMES = [
-  "GK",
-  "CB",
-  "LB",
-  "RB",
-  "CM",
-  "LM",
-  "RM",
-  "LW",
-  "RW",
-  "ST"
-];
+/* =========================
+   POSITION HELPERS
+========================= */
+
+const POSITION_GROUPS = {
+  GK: ["GK"],
+  CB: ["CB", "LB", "RB", "LWB", "RWB", "SW"],
+  CM: ["CM", "CDM", "CAM", "LM", "RM", "DM", "AM"],
+  LW: ["LW", "LM", "LWF"],
+  RW: ["RW", "RM", "RWF"],
+  ST: ["ST", "CF", "SS"],
+  Other: []
+};
 
 function normalisePosition(text) {
-  const value = String(text || "").toUpperCase().trim();
+  const value = String(text || "").trim().toUpperCase();
 
-  for (const position of POSITION_NAMES) {
-    const regex = new RegExp(
-      `(^|[^A-Z])${position.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^A-Z]|$)`
-    );
+  if (!value) return "Other";
 
-    if (regex.test(value)) {
-      return position;
-    }
+  if (value.includes("GOALKEEPER")) return "GK";
+  if (value === "KEEPER") return "GK";
+
+  if (value.includes("LEFT BACK")) return "LB";
+  if (value.includes("RIGHT BACK")) return "RB";
+  if (value.includes("LEFT WING")) return "LW";
+  if (value.includes("RIGHT WING")) return "RW";
+  if (value.includes("CENTRE BACK")) return "CB";
+  if (value.includes("CENTER BACK")) return "CB";
+  if (value.includes("STRIKER")) return "ST";
+
+  for (const group of Object.values(POSITION_GROUPS)) {
+    if (group.includes(value)) return value;
   }
 
-  return "OTHER";
+  return value;
 }
 
 /*
-  Reads the position channel.
+  Looks through the specified Discord channel for the player.
+  It accepts messages such as:
 
-  It supports messages such as:
-    @Player GK
-    @Player - GK
-    Player GK
-    Player - GK
+  @Player - GK
+  Player - CB
+  Player: ST
+  Player | LW
+  Player GK
 
-  It also checks message mentions, usernames and display names.
+  The newest matching message is used.
 */
-async function getPlayerPositions(guild) {
-  const result = new Map();
 
+async function getPlayerPosition(guild, userId, displayName) {
   try {
     const channel = await guild.channels.fetch(POSITION_CHANNEL_ID);
 
     if (!channel || !channel.isTextBased()) {
-      console.log("Position channel is not text based.");
-      return result;
+      return "Other";
     }
 
-    let messages = [];
-    let before;
+    let messages;
 
-    for (let page = 0; page < 10; page++) {
-      const options = { limit: 100 };
-
-      if (before) {
-        options.before = before;
-      }
-
-      const batch = await channel.messages.fetch(options);
-
-      if (!batch.size) break;
-
-      messages.push(...batch.values());
-
-      before = batch.last().id;
-
-      if (batch.size < 100) break;
+    try {
+      messages = await channel.messages.fetch({ limit: 100 });
+    } catch {
+      return "Other";
     }
 
-    for (const message of messages) {
-      const content = message.content || "";
-      const position = normalisePosition(content);
+    const possibleNames = [
+      String(displayName || "").toLowerCase(),
+      String(userId || "").toLowerCase()
+    ];
 
-      if (position === "OTHER") continue;
+    for (const message of messages.values()) {
+      const content = String(message.content || "");
 
-      const mentionedIds = [...message.mentions.users.keys()];
+      const mentioned =
+        message.mentions?.users?.has(userId);
 
-      for (const id of mentionedIds) {
-        result.set(id, position);
-      }
+      const lower = content.toLowerCase();
 
-      for (const member of guild.members.cache.values()) {
-        if (member.user.bot) continue;
+      const nameMatch =
+        possibleNames.some(
+          name =>
+            name &&
+            lower.includes(name)
+        );
 
-        const names = [
-          member.user.username,
-          member.displayName,
-          member.user.globalName
-        ].filter(Boolean);
+      if (!mentioned && !nameMatch) continue;
 
-        const lowerContent = content.toLowerCase();
+      const upper = content.toUpperCase();
 
-        const found = names.some(name => {
-          return lowerContent.includes(String(name).toLowerCase());
-        });
+      const positions = [
+        "GOALKEEPER",
+        "GK",
+        "LB",
+        "RB",
+        "CB",
+        "LWB",
+        "RWB",
+        "LW",
+        "RW",
+        "LM",
+        "RM",
+        "CDM",
+        "CM",
+        "CAM",
+        "DM",
+        "AM",
+        "ST",
+        "CF",
+        "SS"
+      ];
 
-        if (found) {
-          result.set(member.id, position);
+      for (const position of positions) {
+        if (
+          new RegExp(
+            `(^|[^A-Z])${position}([^A-Z]|$)`
+          ).test(upper)
+        ) {
+          return normalisePosition(position);
         }
       }
     }
-
-    console.log(
-      `Loaded ${result.size} player positions from position channel.`
-    );
-
   } catch (error) {
-    console.error("Position channel error:", error);
+    console.error("Position lookup error:", error);
   }
 
-  return result;
+  return "Other";
 }
+
+/* =========================
+   SESSION
+========================= */
 
 function createSession(interaction, size) {
   const roster = formations[size].map((p, index) => ({
@@ -276,6 +291,14 @@ function createSession(interaction, size) {
     position: p[0],
     x: p[1],
     y: p[2],
+
+    /*
+      Pitch players live in roster.
+      Bench players are stored separately.
+      This prevents assigning a new player to a grey
+      circle from deleting a benched player.
+    */
+
     userId: null,
     name: "",
     avatar: "",
@@ -289,7 +312,7 @@ function createSession(interaction, size) {
     channelId: interaction.channelId,
     size,
     roster,
-    benchPlayers: [],
+    bench: [],
     finished: false,
     createdAt: Date.now()
   };
@@ -384,10 +407,11 @@ client.on("interactionCreate", async interaction => {
       const url =
         `${getBaseUrl()}/pitch/${session.id}?uid=${interaction.user.id}`;
 
-      const button = new ButtonBuilder()
-        .setLabel("⚽ OPEN LINEUP EDITOR")
-        .setStyle(ButtonStyle.Link)
-        .setURL(url);
+      const button =
+        new ButtonBuilder()
+          .setLabel("⚽ OPEN LINEUP EDITOR")
+          .setStyle(ButtonStyle.Link)
+          .setURL(url);
 
       await interaction.update({
         content:
@@ -397,10 +421,7 @@ client.on("interactionCreate", async interaction => {
           new ActionRowBuilder().addComponents(button)
         ]
       });
-
-      return;
     }
-
   } catch (error) {
     console.error("Discord interaction error:", error);
 
@@ -474,36 +495,27 @@ const server = http.createServer(async (req, res) => {
 
       if (guild) {
         try {
-          await guild.members.fetch();
-
-          const positions =
-            await getPlayerPositions(guild);
+          const fetched =
+            await guild.members.fetch();
 
           serverMembers =
-            [...guild.members.cache.values()]
+            fetched
               .filter(m => !m.user.bot)
               .map(m => ({
                 id: m.user.id,
                 name: m.displayName,
                 username: m.user.username,
-                position:
-                  positions.get(m.id) || "OTHER",
                 avatar:
                   m.user.displayAvatarURL({
                     extension: "png",
                     size: 128
                   })
-              })
-              .sort((a, b) => {
-                if (a.position === b.position) {
-                  return a.name.localeCompare(b.name);
-                }
-
-                return a.position.localeCompare(b.position);
               });
-
-        } catch (e) {
-          console.error("Member fetch error:", e);
+        } catch (error) {
+          console.error(
+            "Member fetch error:",
+            error
+          );
         }
       }
 
@@ -513,7 +525,7 @@ const server = http.createServer(async (req, res) => {
         creatorId: session.creatorId,
         finished: session.finished,
         roster: session.roster,
-        benchPlayers: session.benchPlayers || [],
+        bench: session.bench || [],
         serverMembers
       });
     }
@@ -568,29 +580,16 @@ const server = http.createServer(async (req, res) => {
 
           /*
             IMPORTANT:
-            Bench status is not accepted here.
-
-            This prevents saveAll() from accidentally
-            putting a newly assigned player back on the bench.
+            Do NOT allow the save operation to overwrite
+            the actual player/bench relationship.
           */
-          target.bench = false;
         });
-      }
-
-      if (Array.isArray(body.benchPlayers)) {
-        session.benchPlayers =
-          body.benchPlayers.map(player => ({
-            userId: String(player.userId || ""),
-            name: String(player.name || ""),
-            avatar: String(player.avatar || ""),
-            position: String(player.position || "OTHER")
-          })).filter(player => player.userId);
       }
 
       return sendJson(res, 200, {
         success: true,
         roster: session.roster,
-        benchPlayers: session.benchPlayers
+        bench: session.bench
       });
     }
 
@@ -633,14 +632,9 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      let member;
-
-      try {
-        member =
-          await guild.members.fetch(body.userId);
-      } catch {
-        member = null;
-      }
+      const member =
+        await guild.members.fetch(body.userId)
+          .catch(() => null);
 
       if (!member || member.user.bot) {
         return sendJson(res, 404, {
@@ -650,31 +644,42 @@ const server = http.createServer(async (req, res) => {
 
       /*
         If this player is currently on the bench,
-        remove them from the bench first.
+        REMOVE THEM FROM THE BENCH FIRST.
+        This means putting a benched player back
+        onto the pitch works correctly.
       */
-      session.benchPlayers =
-        (session.benchPlayers || [])
-          .filter(p => p.userId !== member.user.id);
+
+      session.bench =
+        (session.bench || []).filter(
+          p => p.userId !== member.user.id
+        );
+
+      const detectedPosition =
+        await getPlayerPosition(
+          guild,
+          member.user.id,
+          member.displayName
+        );
 
       slot.userId = member.user.id;
       slot.name = member.displayName;
+
       slot.avatar =
         member.user.displayAvatarURL({
           extension: "png",
           size: 256
         });
 
-      /*
-        NEW PLAYER ALWAYS GOES ON THE PITCH.
-        This fixes the old bug where a replacement
-        inherited the old slot's bench=true value.
-      */
+      slot.position =
+        detectedPosition || "Other";
+
       slot.bench = false;
 
       return sendJson(res, 200, {
         success: true,
         slot,
-        benchPlayers: session.benchPlayers
+        position: slot.position,
+        bench: session.bench
       });
     }
 
@@ -720,7 +725,6 @@ const server = http.createServer(async (req, res) => {
       }
 
       slot.position = position;
-      slot.bench = false;
 
       return sendJson(res, 200, {
         success: true,
@@ -767,8 +771,15 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      slot.x = Math.max(4, Math.min(96, x));
-      slot.y = Math.max(5, Math.min(95, y));
+      slot.x = Math.max(
+        4,
+        Math.min(96, x)
+      );
+
+      slot.y = Math.max(
+        5,
+        Math.min(95, y)
+      );
 
       return sendJson(res, 200, {
         success: true,
@@ -806,142 +817,69 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      if (!slot.userId) {
-        return sendJson(res, 400, {
-          error: "There is no player in this slot."
-        });
-      }
+      /*
+        BENCHING:
+        Copy the player into session.bench,
+        then CLEAR the pitch slot.
 
-      session.benchPlayers =
-        session.benchPlayers || [];
+        The grey circle remains because the slot
+        itself is still there.
+      */
 
-      if (Boolean(body.bench)) {
-        /*
-          SAVE THE PLAYER TO THE BENCH.
-        */
-        const alreadyBench =
-          session.benchPlayers.some(
-            p => p.userId === slot.userId
-          );
+      if (body.bench === true) {
+        if (slot.userId) {
+          const alreadyOnBench =
+            (session.bench || []).some(
+              p => p.userId === slot.userId
+            );
 
-        if (!alreadyBench) {
-          session.benchPlayers.push({
-            userId: slot.userId,
-            name: slot.name,
-            avatar: slot.avatar,
-            position: slot.position
-          });
+          if (!alreadyOnBench) {
+            session.bench.push({
+              userId: slot.userId,
+              name: slot.name,
+              avatar: slot.avatar,
+              position: slot.position
+            });
+          }
         }
 
-        /*
-          EMPTY THE PITCH SLOT.
-          The slot itself remains, so the grey circle
-          appears again and another player can be added.
-        */
         slot.userId = null;
         slot.name = "";
         slot.avatar = "";
         slot.bench = false;
+      }
 
-      } else {
-        /*
-          Remove from bench and put the player into
-          the requested pitch slot.
-        */
-        const benchIndex =
-          session.benchPlayers.findIndex(
-            p => p.userId === body.userId
+      /*
+        REMOVE FROM BENCH:
+        Put that player back into this pitch slot.
+      */
+
+      if (body.bench === false) {
+        const benchPlayer =
+          (session.bench || []).find(
+            p =>
+              p.userId === body.userId
           );
 
-        if (benchIndex === -1) {
-          return sendJson(res, 404, {
-            error: "Player is not on the bench."
-          });
+        if (benchPlayer) {
+          slot.userId = benchPlayer.userId;
+          slot.name = benchPlayer.name;
+          slot.avatar = benchPlayer.avatar;
+          slot.position = benchPlayer.position;
+          slot.bench = false;
+
+          session.bench =
+            session.bench.filter(
+              p =>
+                p.userId !== benchPlayer.userId
+            );
         }
-
-        const benchPlayer =
-          session.benchPlayers[benchIndex];
-
-        session.benchPlayers.splice(benchIndex, 1);
-
-        slot.userId = benchPlayer.userId;
-        slot.name = benchPlayer.name;
-        slot.avatar = benchPlayer.avatar;
-        slot.position =
-          benchPlayer.position || slot.position;
-        slot.bench = false;
       }
 
       return sendJson(res, 200, {
         success: true,
         slot,
-        benchPlayers: session.benchPlayers
-      });
-    }
-
-    /* REMOVE FROM BENCH */
-
-    if (
-      url.pathname === "/api/bench/remove" &&
-      req.method === "POST"
-    ) {
-      const body = await readBody(req);
-      const session = sessions.get(body.session);
-
-      if (!session) {
-        return sendJson(res, 404, {
-          error: "Session not found"
-        });
-      }
-
-      if (body.uid !== session.creatorId) {
-        return sendJson(res, 403, {
-          error: "You cannot edit this lineup."
-        });
-      }
-
-      const index =
-        (session.benchPlayers || []).findIndex(
-          p => p.userId === body.userId
-        );
-
-      if (index === -1) {
-        return sendJson(res, 404, {
-          error: "Player is not on the bench."
-        });
-      }
-
-      const player =
-        session.benchPlayers[index];
-
-      /*
-        Find the first empty grey pitch circle.
-      */
-      const emptySlot =
-        session.roster.find(
-          p => !p.userId
-        );
-
-      if (!emptySlot) {
-        return sendJson(res, 400, {
-          error:
-            "There is no empty pitch position. Bench player remains on the bench."
-        });
-      }
-
-      session.benchPlayers.splice(index, 1);
-
-      emptySlot.userId = player.userId;
-      emptySlot.name = player.name;
-      emptySlot.avatar = player.avatar;
-      emptySlot.position =
-        player.position || emptySlot.position;
-      emptySlot.bench = false;
-
-      return sendJson(res, 200, {
-        success: true,
-        slot: emptySlot,
-        benchPlayers: session.benchPlayers
+        bench: session.bench
       });
     }
 
@@ -984,7 +922,7 @@ const server = http.createServer(async (req, res) => {
         );
 
       const bench =
-        session.benchPlayers || [];
+        session.bench || [];
 
       let text =
         "**NEWCASTLE LINEUP TODAY ENJOY**\n\n";
@@ -1040,7 +978,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Web server listening on ${PORT}`);
+  console.log(
+    `Web server listening on ${PORT}`
+  );
 });
 
 client.login(TOKEN);
@@ -1073,14 +1013,21 @@ function readBody(req) {
       data += chunk;
 
       if (data.length > 1000000) {
-        reject(new Error("Request too large"));
+        reject(
+          new Error("Request too large")
+        );
+
         req.destroy();
       }
     });
 
     req.on("end", () => {
       try {
-        resolve(data ? JSON.parse(data) : {});
+        resolve(
+          data
+            ? JSON.parse(data)
+            : {}
+        );
       } catch {
         resolve({});
       }
@@ -1140,111 +1087,100 @@ async function createPitchImage(session) {
     );
 
   const bench =
-    session.benchPlayers || [];
+    session.bench || [];
 
-  const players =
-    playing.map(p => {
-      const x = (p.x / 100) * width;
-      const y = (p.y / 100) * pitchHeight;
+  const playerSvg = [];
 
-      let avatarSvg = `
-        <circle
-          cx="${x}"
-          cy="${y}"
-          r="34"
-          fill="#707873"
-          stroke="white"
-          stroke-width="4"
-        />
-        <text
-          x="${x}"
-          y="${y + 8}"
-          text-anchor="middle"
-          fill="white"
-          font-family="Arial"
-          font-size="22"
-          font-weight="bold"
-        >${escapeSvg(
-          p.name
-            ? p.name.charAt(0).toUpperCase()
-            : "?"
-        )}</text>
-      `;
+  for (const p of playing) {
+    const x =
+      (p.x / 100) * width;
 
-      /*
-        IMPORTANT:
-        The actual Discord profile picture is downloaded
-        and placed inside the final image.
-      */
-      if (p.avatar) {
-        try {
-          const response =
-            await fetch(p.avatar);
+    const y =
+      (p.y / 100) * pitchHeight;
 
-          if (response.ok) {
-            const buffer =
-              Buffer.from(
-                await response.arrayBuffer()
-              );
+    let avatarImage = "";
 
-            const png =
-              await sharp(buffer)
-                .resize(64, 64, {
-                  fit: "cover"
-                })
-                .png()
-                .toBuffer();
+    if (p.avatar) {
+      try {
+        const response =
+          await fetch(p.avatar);
 
-            const base64 =
-              png.toString("base64");
+        if (response.ok) {
+          const buffer =
+            Buffer.from(
+              await response.arrayBuffer()
+            );
 
-            avatarSvg = `
-              <defs>
-                <clipPath id="clip-${escapeSvg(p.slot)}">
-                  <circle
-                    cx="${x}"
-                    cy="${y}"
-                    r="31"
-                  />
-                </clipPath>
-              </defs>
+          const png =
+            await sharp(buffer)
+              .resize(100, 100, {
+                fit: "cover"
+              })
+              .png()
+              .toBuffer();
 
-              <circle
-                cx="${x}"
-                cy="${y}"
-                r="34"
-                fill="#707873"
-                stroke="white"
-                stroke-width="4"
-              />
-
-              <image
-                href="data:image/png;base64,${base64}"
-                x="${x - 31}"
-                y="${y - 31}"
-                width="62"
-                height="62"
-                preserveAspectRatio="xMidYMid slice"
-                clip-path="url(#clip-${escapeSvg(p.slot)})"
-              />
-            `;
-          }
-        } catch (e) {
-          console.error(
-            "Avatar download failed:",
-            e.message
-          );
+          avatarImage =
+            `data:image/png;base64,${png.toString("base64")}`;
         }
+      } catch (error) {
+        console.error(
+          "Avatar download error:",
+          error
+        );
       }
+    }
 
-      return `
+    playerSvg.push(`
 <g>
-${avatarSvg}
+<circle
+cx="${x}"
+cy="${y}"
+r="36"
+fill="#202a24"
+stroke="white"
+stroke-width="4"
+/>
+
+${
+  avatarImage
+    ? `
+<clipPath id="clip${p.slot}">
+<circle cx="${x}" cy="${y}" r="32"/>
+</clipPath>
+
+<image
+href="${avatarImage}"
+x="${x - 32}"
+y="${y - 32}"
+width="64"
+height="64"
+preserveAspectRatio="xMidYMid slice"
+clip-path="url(#clip${p.slot})"
+/>
+`
+    : `
+<text
+x="${x}"
+y="${y + 8}"
+text-anchor="middle"
+fill="white"
+font-family="Arial"
+font-size="23"
+font-weight="bold"
+>
+${escapeSvg(
+  p.name
+    ? p.name.charAt(0).toUpperCase()
+    : "?"
+)}
+</text>
+`
+}
 
 <rect
-x="${x - 70}"
-y="${y + 39}"
-width="140"
+x="${x - 75}"
+y="${y + 40}"
+width="150"
 height="28"
 rx="7"
 fill="#07130c"
@@ -1252,14 +1188,16 @@ fill="#07130c"
 
 <text
 x="${x}"
-y="${y + 58}"
+y="${y + 59}"
 text-anchor="middle"
 fill="white"
 font-family="Arial"
 font-size="15"
 font-weight="bold"
 >
-${escapeSvg(p.name || "Player")}
+${escapeSvg(
+  p.name || "Player"
+)}
 </text>
 
 <text
@@ -1271,118 +1209,54 @@ font-family="Arial"
 font-size="13"
 font-weight="bold"
 >
-${escapeSvg(p.position || "OTHER")}
+${escapeSvg(p.position)}
 </text>
-</g>`;
-    });
+</g>
+`);
+  }
 
-  const playerSvg =
-    (await Promise.all(players)).join("");
+  const benchSvg = bench.map(
+    (p, i) => {
+      const x =
+        80 + (i % 6) * 200;
 
-  const benchPlayers =
-    await Promise.all(
-      bench.map(async (p, i) => {
-        const x = 70 + i * 180;
+      const y =
+        825 + Math.floor(i / 6) * 55;
 
-        let avatarSvg = `
-          <circle
-            cx="${x}"
-            cy="830"
-            r="25"
-            fill="#707873"
-            stroke="white"
-            stroke-width="3"
-          />
-
-          <text
-            x="${x}"
-            y="836"
-            text-anchor="middle"
-            fill="white"
-            font-family="Arial"
-            font-size="17"
-            font-weight="bold"
-          >
-          ${escapeSvg(
-            p.name
-              ? p.name.charAt(0).toUpperCase()
-              : "?"
-          )}
-          </text>
-        `;
-
-        if (p.avatar) {
-          try {
-            const response =
-              await fetch(p.avatar);
-
-            if (response.ok) {
-              const buffer =
-                Buffer.from(
-                  await response.arrayBuffer()
-                );
-
-              const png =
-                await sharp(buffer)
-                  .resize(52, 52, {
-                    fit: "cover"
-                  })
-                  .png()
-                  .toBuffer();
-
-              const base64 =
-                png.toString("base64");
-
-              avatarSvg = `
-                <defs>
-                  <clipPath id="bench-${i}">
-                    <circle
-                      cx="${x}"
-                      cy="830"
-                      r="23"
-                    />
-                  </clipPath>
-                </defs>
-
-                <circle
-                  cx="${x}"
-                  cy="830"
-                  r="25"
-                  fill="#707873"
-                  stroke="white"
-                  stroke-width="3"
-                />
-
-                <image
-                  href="data:image/png;base64,${base64}"
-                  x="${x - 23}"
-                  y="807"
-                  width="46"
-                  height="46"
-                  preserveAspectRatio="xMidYMid slice"
-                  clip-path="url(#bench-${i})"
-                />
-              `;
-            }
-          } catch (e) {
-            console.error(
-              "Bench avatar error:",
-              e.message
-            );
-          }
-        }
-
-        return `
+      return `
 <g>
-${avatarSvg}
+<circle
+cx="${x}"
+cy="${y}"
+r="25"
+fill="#202a24"
+stroke="white"
+stroke-width="3"
+/>
 
 <text
 x="${x}"
-y="870"
+y="${y + 6}"
 text-anchor="middle"
 fill="white"
 font-family="Arial"
-font-size="13"
+font-size="16"
+font-weight="bold"
+>
+${escapeSvg(
+  p.name
+    ? p.name.charAt(0).toUpperCase()
+    : "?"
+)}
+</text>
+
+<text
+x="${x}"
+y="${y + 40}"
+text-anchor="middle"
+fill="white"
+font-family="Arial"
+font-size="12"
 font-weight="bold"
 >
 ${escapeSvg(p.name || "Player")}
@@ -1390,20 +1264,17 @@ ${escapeSvg(p.name || "Player")}
 
 <text
 x="${x}"
-y="888"
+y="${y + 56}"
 text-anchor="middle"
 fill="#d9e0db"
 font-family="Arial"
-font-size="11"
+font-size="10"
 >
-${escapeSvg(p.position || "OTHER")}
+${escapeSvg(p.position)}
 </text>
 </g>`;
-      })
-    );
-
-  const benchSvg =
-    benchPlayers.join("");
+    }
+  ).join("");
 
   const svg = `
 <svg
@@ -1421,9 +1292,20 @@ y1="0"
 x2="0"
 y2="1"
 >
-<stop offset="0%" stop-color="#247b42"/>
-<stop offset="50%" stop-color="#1f713c"/>
-<stop offset="100%" stop-color="#247b42"/>
+<stop
+offset="0%"
+stop-color="#247b42"
+/>
+
+<stop
+offset="50%"
+stop-color="#1f713c"
+/>
+
+<stop
+offset="100%"
+stop-color="#247b42"
+/>
 </linearGradient>
 </defs>
 
@@ -1499,7 +1381,7 @@ height="60"
 
 </g>
 
-${playerSvg}
+${playerSvg.join("")}
 
 <rect
 x="18"
@@ -1525,9 +1407,12 @@ BENCH
 
 ${benchSvg}
 
-</svg>`;
+</svg>
+`;
 
-  return sharp(Buffer.from(svg))
+  return sharp(
+    Buffer.from(svg)
+  )
     .png()
     .toBuffer();
 }
@@ -1541,8 +1426,7 @@ function pitchPage(session) {
     JSON.stringify(
       session.roster.map(p => ({
         x: p.x,
-        y: p.y,
-        position: p.position
+        y: p.y
       }))
     );
 
@@ -1557,7 +1441,7 @@ name="viewport"
 content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
 >
 
-<title>Football Lineup</title>
+<title>Newcastle Lineup</title>
 
 <style>
 
@@ -1663,8 +1547,6 @@ to bottom,
 box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
 
-/* GRID */
-
 .pitch.grid-on::after{
 content:"";
 position:absolute;
@@ -1758,7 +1640,7 @@ bottom:0;
 border-top:3px solid white;
 }
 
-/* PLAYERS */
+/* PLAYER */
 
 .player{
 position:absolute;
@@ -1783,7 +1665,7 @@ height:54px;
 margin:auto;
 border-radius:50%;
 border:3px solid white;
-background:#707873;
+background:#6f7772;
 display:flex;
 align-items:center;
 justify-content:center;
@@ -1827,7 +1709,7 @@ border-radius:50%;
 /* PANEL */
 
 .panel{
-width:280px;
+width:270px;
 padding:15px;
 border-radius:13px;
 background:#0d1811;
@@ -1864,48 +1746,44 @@ background:#15803d;
 background:#a16207;
 }
 
-.status{
-margin-top:10px;
-padding:9px;
-background:#18231c;
-border-radius:7px;
-font-size:11px;
-}
+/* SEARCH */
 
 .search{
 width:100%;
-padding:11px;
+padding:12px;
+margin-bottom:8px;
+border:0;
+outline:0;
 border-radius:8px;
-border:1px solid rgba(255,255,255,.15);
-background:#17221b;
+background:#18231c;
 color:white;
-outline:none;
-margin-top:8px;
+font-size:13px;
 }
 
 .search::placeholder{
-color:#7d8a81;
+color:#819087;
 }
 
-/* POSITION SECTIONS */
+/* SECTIONS */
 
 .position-section{
-margin-top:12px;
+margin-bottom:7px;
 }
 
-.position-title{
-font-size:12px;
-font-weight:900;
-padding:7px 8px;
-background:#202a24;
+.section-title{
+padding:8px 10px;
 border-radius:7px;
+background:#17221b;
+font-size:11px;
+font-weight:900;
+cursor:pointer;
 }
 
-.members{
-margin-top:6px;
+.section-members{
 display:flex;
 flex-direction:column;
 gap:5px;
+margin-top:5px;
 }
 
 .member{
@@ -1919,7 +1797,7 @@ cursor:pointer;
 }
 
 .member:hover{
-background:#243329;
+background:#202d25;
 }
 
 .member img{
@@ -1935,12 +1813,6 @@ font-weight:800;
 overflow:hidden;
 text-overflow:ellipsis;
 white-space:nowrap;
-}
-
-.member-position{
-font-size:9px;
-color:#8f9c93;
-margin-top:2px;
 }
 
 /* BENCH */
@@ -1975,10 +1847,6 @@ border-radius:8px;
 cursor:pointer;
 }
 
-.bench-player:hover{
-background:#243329;
-}
-
 .bench-player img{
 width:34px;
 height:34px;
@@ -1988,12 +1856,6 @@ border-radius:50%;
 .bench-player-name{
 font-size:11px;
 font-weight:900;
-}
-
-.bench-player-action{
-font-size:9px;
-color:#facc15;
-margin-top:2px;
 }
 
 .bench-empty{
@@ -2051,7 +1913,7 @@ font-size:13px;
 }
 
 .members{
-max-height:220px;
+max-height:400px;
 overflow:auto;
 }
 
@@ -2128,7 +1990,9 @@ height:100px;
 <div class="topbar">
 
 <div>
-<div class="title">⚽ Football Lineup</div>
+<div class="title">
+⚽ Newcastle Lineup
+</div>
 
 <div class="subtitle">
 ${session.size}v${session.size} • Select players, move them and use the bench
@@ -2203,15 +2067,17 @@ No players on the bench.
 
 <div class="panel">
 
-<h2>Lineup Controls</h2>
+<h2>
+Lineup Controls
+</h2>
 
 <div class="info">
-Click a grey circle to select it.<br>
-Choose a player from their position section.<br>
-Use Move Player to drag players.<br>
-Players snap to the grid.<br>
-Use Bench to move a player to the bench.<br>
-When benched, the pitch slot becomes grey again.
+Click a grey circle to select it.
+Choose a player below.
+Use Move Player to drag.
+Players snap to the 5% grid.
+Use Bench to move the selected player to the bench.
+Click a bench player to return them to the selected/empty pitch slot.
 </div>
 
 <button
@@ -2252,7 +2118,10 @@ placeholder="🔎 Search players..."
 oninput="renderMembers()"
 >
 
-<div id="positionSections"></div>
+<div
+class="members"
+id="members"
+></div>
 
 </div>
 
@@ -2283,8 +2152,8 @@ document.getElementById("pitch");
 const players =
 document.getElementById("players");
 
-const positionSections =
-document.getElementById("positionSections");
+const members =
+document.getElementById("members");
 
 const benchList =
 document.getElementById("benchList");
@@ -2292,14 +2161,12 @@ document.getElementById("benchList");
 const statusBox =
 document.getElementById("status");
 
-function escapeHTML(value){
-return String(value ?? "")
-.replaceAll("&","&amp;")
-.replaceAll("<","&lt;")
-.replaceAll(">","&gt;")
-.replaceAll('"',"&quot;")
-.replaceAll("'","&#039;");
-}
+const searchBox =
+document.getElementById("search");
+
+/* =========================
+   LOAD
+========================= */
 
 async function load(){
 
@@ -2315,16 +2182,18 @@ const data =
 await response.json();
 
 if(!response.ok){
+
 throw new Error(
 data.error ||
 "Could not load lineup."
 );
+
 }
 
 state = data;
 
-if(!Array.isArray(state.benchPlayers)){
-state.benchPlayers = [];
+if(!Array.isArray(state.bench)){
+state.bench = [];
 }
 
 render();
@@ -2344,6 +2213,10 @@ escapeHTML(error.message) +
 
 }
 
+/* =========================
+   RENDER
+========================= */
+
 function render(){
 
 renderPlayers();
@@ -2353,6 +2226,10 @@ updateStatus();
 
 }
 
+/* =========================
+   PITCH PLAYERS
+========================= */
+
 function renderPlayers(){
 
 players.innerHTML = "";
@@ -2361,10 +2238,11 @@ state.roster.forEach(
 (player,index)=>{
 
 /*
-  IMPORTANT:
-  Every roster slot always renders.
-  If empty it is a grey circle.
+  ALWAYS render every slot.
+  If a player was benched, their slot is
+  empty again and therefore shows grey circle.
 */
+
 const el =
 document.createElement("div");
 
@@ -2382,7 +2260,7 @@ player.y + "%";
 
 let avatar;
 
-if(player.avatar){
+if(player.userId && player.avatar){
 
 avatar =
 "<div class='avatar'>" +
@@ -2407,7 +2285,7 @@ player.name ||
 ) +
 "</div>" +
 "<div class='position'>" +
-escapeHTML(player.position) +
+escapeHTML(player.position || "Other") +
 "</div>";
 
 /* CLICK */
@@ -2435,18 +2313,21 @@ return;
 selected = index;
 
 renderPlayers();
-
 updateStatus();
 
+renderMembers();
+
 });
+
+players.appendChild(el);
+
+/* DRAG */
 
 el.addEventListener(
 "pointerdown",
 event=>{
 
-if(!moving){
-return;
-}
+if(!moving) return;
 
 event.preventDefault();
 
@@ -2492,9 +2373,8 @@ let y =
 ((event.clientY - rect.top) /
 rect.height) * 100;
 
-/*
-  GRID SNAP REMAINS ON.
-*/
+/* 5% GRID */
+
 x =
 Math.round(x / 5) * 5;
 
@@ -2502,10 +2382,16 @@ y =
 Math.round(y / 5) * 5;
 
 x =
-Math.max(4,Math.min(96,x));
+Math.max(
+4,
+Math.min(96,x)
+);
 
 y =
-Math.max(5,Math.min(95,y));
+Math.max(
+5,
+Math.min(95,y)
+);
 
 el.style.left =
 x + "%";
@@ -2527,12 +2413,16 @@ return;
 }
 
 try{
+
 el.releasePointerCapture(
 event.pointerId
 );
+
 }catch{}
 
-el.classList.remove("dragging");
+el.classList.remove(
+"dragging"
+);
 
 const index =
 dragging.index;
@@ -2541,76 +2431,170 @@ dragging = null;
 
 await saveMove(index);
 
-});
-
-players.appendChild(el);
+render();
 
 });
+
+});
+
+}
+
+/* =========================
+   PLAYER LIST
+========================= */
+
+function getPositionGroup(position){
+
+const p =
+String(position || "")
+.toUpperCase();
+
+if(p === "GK"){
+return "GK";
+}
+
+if(
+[
+"CB",
+"LB",
+"RB",
+"LWB",
+"RWB",
+"SW"
+].includes(p)
+){
+return "CB";
+}
+
+if(
+[
+"CM",
+"CDM",
+"CAM",
+"LM",
+"RM",
+"DM",
+"AM"
+].includes(p)
+){
+return "CM";
+}
+
+if(
+[
+"LW",
+"LWF"
+].includes(p)
+){
+return "LW";
+}
+
+if(
+[
+"RW",
+"RWF"
+].includes(p)
+){
+return "RW";
+}
+
+if(
+[
+"ST",
+"CF",
+"SS"
+].includes(p)
+){
+return "ST";
+}
+
+return "Other";
 
 }
 
 function renderMembers(){
 
-positionSections.innerHTML = "";
+members.innerHTML = "";
 
 if(!state.serverMembers){
 return;
 }
 
-const search =
-document.getElementById(
-"search"
-).value
+const query =
+String(
+searchBox.value || ""
+)
 .toLowerCase()
 .trim();
 
 const groups = {
-"GK":[],
-"CB":[],
-"LB":[],
-"RB":[],
-"CM":[],
-"LM":[],
-"RM":[],
-"LW":[],
-"RW":[],
-"ST":[],
-"OTHER":[]
+GK:[],
+CB:[],
+CM:[],
+LW:[],
+RW:[],
+ST:[],
+Other:[]
 };
 
-state.serverMembers.forEach(member=>{
+state.serverMembers.forEach(
+member=>{
 
 const text =
 (
 member.name +
 " " +
 member.username
-).toLowerCase();
+)
+.toLowerCase();
 
 if(
-search &&
-!text.includes(search)
+query &&
+!text.includes(query)
 ){
 return;
 }
 
-const position =
-groups[member.position]
-? member.position
-: "OTHER";
+/*
+  Find position from current roster first.
+  If they aren't assigned yet, use Other until
+  their position is retrieved when selected.
+*/
+
+let position = "Other";
+
+const current =
+state.roster.find(
+p => p.userId === member.id
+);
+
+if(current){
+position =
+normaliseClientPosition(
+current.position
+);
+}
+
+groups[position] =
+groups[position] || [];
 
 groups[position].push(member);
 
 });
 
-Object.keys(groups).forEach(position=>{
+const order =
+[
+"GK",
+"CB",
+"CM",
+"LW",
+"RW",
+"ST",
+"Other"
+];
 
-const list =
-groups[position];
-
-if(!list.length){
-return;
-}
+order.forEach(
+groupName=>{
 
 const section =
 document.createElement("div");
@@ -2622,22 +2606,21 @@ const title =
 document.createElement("div");
 
 title.className =
-"position-title";
+"section-title";
 
 title.textContent =
-position === "OTHER"
-? "OTHER"
-: "⚽ " + position;
+groupName;
 
 section.appendChild(title);
 
-const memberList =
+const list =
 document.createElement("div");
 
-memberList.className =
-"members";
+list.className =
+"section-members";
 
-list.forEach(member=>{
+groups[groupName].forEach(
+member=>{
 
 const el =
 document.createElement("div");
@@ -2653,32 +2636,113 @@ escapeHTML(member.avatar) +
 "<div class='member-name'>" +
 escapeHTML(member.name) +
 "</div>" +
-"<div class='member-position'>" +
-escapeHTML(member.position) +
+"<div style='font-size:9px;color:#8d9a91'>" +
+escapeHTML(
+groupName
+) +
 "</div>" +
 "</div>";
 
 el.onclick =
 ()=>assignPlayer(member);
 
-memberList.appendChild(el);
+list.appendChild(el);
 
 });
 
-section.appendChild(memberList);
+section.appendChild(list);
 
-positionSections.appendChild(section);
+members.appendChild(section);
 
 });
 
 }
+
+/* =========================
+   POSITION CLIENT
+========================= */
+
+function normaliseClientPosition(
+position
+){
+
+const p =
+String(position || "")
+.toUpperCase();
+
+if(p === "GK"){
+return "GK";
+}
+
+if(
+[
+"CB",
+"LB",
+"RB",
+"LWB",
+"RWB",
+"SW"
+].includes(p)
+){
+return "CB";
+}
+
+if(
+[
+"CM",
+"CDM",
+"CAM",
+"LM",
+"RM",
+"DM",
+"AM"
+].includes(p)
+){
+return "CM";
+}
+
+if(
+[
+"LW",
+"LWF"
+].includes(p)
+){
+return "LW";
+}
+
+if(
+[
+"RW",
+"RWF"
+].includes(p)
+){
+return "RW";
+}
+
+if(
+[
+"ST",
+"CF",
+"SS"
+].includes(p)
+){
+return "ST";
+}
+
+return "Other";
+
+}
+
+/* =========================
+   BENCH
+========================= */
 
 function renderBench(){
 
 benchList.innerHTML = "";
 
 const bench =
-state.benchPlayers || [];
+state.bench || [];
 
 if(!bench.length){
 
@@ -2691,7 +2755,8 @@ return;
 
 }
 
-bench.forEach(player=>{
+bench.forEach(
+player=>{
 
 const el =
 document.createElement("div");
@@ -2707,19 +2772,25 @@ escapeHTML(player.avatar) +
 "<div class='bench-player-name'>" +
 escapeHTML(player.name) +
 "</div>" +
-"<div class='bench-player-action'>" +
-"CLICK TO REMOVE FROM BENCH" +
+"<div style='font-size:9px;color:#9ca89f'>" +
+escapeHTML(player.position) +
 "</div>" +
 "</div>";
 
 el.onclick =
-()=>removeFromBench(player.userId);
+()=>removeFromBench(
+player.userId
+);
 
 benchList.appendChild(el);
 
 });
 
 }
+
+/* =========================
+   STATUS
+========================= */
 
 function updateStatus(){
 
@@ -2743,21 +2814,31 @@ player.name ||
 ) +
 "<br>" +
 "<b>Position:</b> " +
-escapeHTML(player.position);
+escapeHTML(
+player.position ||
+"Other"
+);
 
 }
+
+/* =========================
+   ASSIGN
+========================= */
 
 async function assignPlayer(member){
 
 if(selected === null){
 
 alert(
-"Click a grey player circle first."
+"Click a grey circle first."
 );
 
 return;
 
 }
+
+const slotIndex =
+selected;
 
 try{
 
@@ -2773,7 +2854,7 @@ headers:{
 body:JSON.stringify({
 session:SESSION,
 uid:CREATOR,
-slot:selected,
+slot:slotIndex,
 userId:member.id
 })
 });
@@ -2790,16 +2871,14 @@ data.error ||
 
 }
 
-state.roster[selected] =
+state.roster[slotIndex] =
 data.slot;
 
-state.benchPlayers =
-data.benchPlayers || [];
+state.bench =
+data.bench || [];
 
-moving = false;
 benchMode = false;
 
-updateMoveButton();
 updateBenchButton();
 
 render();
@@ -2811,6 +2890,10 @@ alert(error.message);
 }
 
 }
+
+/* =========================
+   POSITION
+========================= */
 
 async function changePosition(){
 
@@ -2830,7 +2913,7 @@ state.roster[selected];
 const position =
 prompt(
 "Type the position:",
-player.position
+player.position || "Other"
 );
 
 if(position === null){
@@ -2888,6 +2971,10 @@ alert(error.message);
 
 }
 
+/* =========================
+   MOVE
+========================= */
+
 function toggleMove(){
 
 if(selected === null){
@@ -2908,7 +2995,15 @@ benchMode = false;
 
 updateBenchButton();
 
-pitch.classList.add("grid-on");
+pitch.classList.add(
+"grid-on"
+);
+
+}else{
+
+pitch.classList.add(
+"grid-on"
+);
 
 }
 
@@ -2925,14 +3020,18 @@ document.getElementById(
 
 if(moving){
 
-button.classList.add("active");
+button.classList.add(
+"active"
+);
 
 button.textContent =
 "✓ Moving — Grid Snap ON";
 
 }else{
 
-button.classList.remove("active");
+button.classList.remove(
+"active"
+);
 
 button.textContent =
 "↔ Move Player";
@@ -2940,6 +3039,10 @@ button.textContent =
 }
 
 }
+
+/* =========================
+   BENCH MODE
+========================= */
 
 function toggleBenchMode(){
 
@@ -2959,7 +3062,7 @@ state.roster[selected];
 if(!player.userId){
 
 alert(
-"Select a player that has been added."
+"Select a player that is on the pitch."
 );
 
 return;
@@ -3009,7 +3112,18 @@ button.textContent =
 
 }
 
+/* =========================
+   SEND TO BENCH
+========================= */
+
 async function sendToBench(index){
+
+const player =
+state.roster[index];
+
+if(!player.userId){
+return;
+}
 
 try{
 
@@ -3045,11 +3159,12 @@ data.error ||
 state.roster[index] =
 data.slot;
 
-state.benchPlayers =
-data.benchPlayers || [];
+state.bench =
+data.bench || [];
+
+selected = null;
 
 benchMode = false;
-selected = null;
 
 updateBenchButton();
 
@@ -3063,13 +3178,39 @@ alert(error.message);
 
 }
 
-async function removeFromBench(userId){
+/* =========================
+   REMOVE FROM BENCH
+========================= */
+
+async function removeFromBench(
+userId
+){
+
+/*
+  Find an EMPTY pitch slot.
+  We never overwrite another player.
+*/
+
+const emptyIndex =
+state.roster.findIndex(
+p => !p.userId
+);
+
+if(emptyIndex === -1){
+
+alert(
+"There is no empty pitch slot."
+);
+
+return;
+
+}
 
 try{
 
 const response =
 await fetch(
-"/api/bench/remove",
+"/api/bench",
 {
 method:"POST",
 headers:{
@@ -3079,6 +3220,8 @@ headers:{
 body:JSON.stringify({
 session:SESSION,
 uid:CREATOR,
+slot:emptyIndex,
+bench:false,
 userId:userId
 })
 });
@@ -3095,14 +3238,13 @@ data.error ||
 
 }
 
-state.roster[data.slot.slot] =
+state.roster[emptyIndex] =
 data.slot;
 
-state.benchPlayers =
-data.benchPlayers || [];
+state.bench =
+data.bench || [];
 
-selected =
-data.slot.slot;
+selected = emptyIndex;
 
 render();
 
@@ -3113,6 +3255,10 @@ alert(error.message);
 }
 
 }
+
+/* =========================
+   MOVE SAVE
+========================= */
 
 async function saveMove(index){
 
@@ -3156,6 +3302,10 @@ error
 
 }
 
+/* =========================
+   RESET
+========================= */
+
 async function resetLineup(){
 
 if(
@@ -3180,14 +3330,12 @@ ORIGINAL[index].x;
 player.y =
 ORIGINAL[index].y;
 
-player.position =
-ORIGINAL[index].position;
-
 });
 
-state.benchPlayers = [];
+state.bench = [];
 
 selected = null;
+
 moving = false;
 benchMode = false;
 
@@ -3199,6 +3347,10 @@ render();
 await saveAll();
 
 }
+
+/* =========================
+   SAVE
+========================= */
 
 async function saveAll(){
 
@@ -3216,8 +3368,7 @@ headers:{
 },
 body:JSON.stringify({
 uid:CREATOR,
-roster:state.roster,
-benchPlayers:state.benchPlayers
+roster:state.roster
 })
 });
 
@@ -3229,11 +3380,18 @@ console.error(
 
 }catch(error){
 
-console.error(error);
+console.error(
+"Save error:",
+error
+);
 
 }
 
 }
+
+/* =========================
+   FINISH
+========================= */
 
 async function finishLineup(){
 
@@ -3248,7 +3406,9 @@ return;
 await saveAll();
 
 const button =
-document.querySelector(".finish");
+document.querySelector(
+".finish"
+);
 
 button.disabled = true;
 
