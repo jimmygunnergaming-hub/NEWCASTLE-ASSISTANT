@@ -1,16 +1,16 @@
 {
   "name": "newcastle-assistant",
-  "version": "1.0.0",
-  "description": "Newcastle Discord football lineup bot",
+  "version": "1.1.0",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "24.14.1"
   },
   "dependencies": {
-    "discord.js": "^14.25.1",
-    "sharp": "^0.34.3"
+    "discord.js": "14.27.0",
+    "sharp": "0.35.4"
   }
 }
