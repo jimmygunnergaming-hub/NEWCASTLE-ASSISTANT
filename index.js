@@ -1,6 +1,5 @@
 const http = require("http");
 const crypto = require("crypto");
-const https = require("https");
 const sharp = require("sharp");
 
 const {
@@ -57,103 +56,116 @@ function escapeSvg(value = "") {
 }
 
 const formations = {
-  1: [["GK",50,88]],
+  1: [["GK", 50, 88]],
 
   2: [
-    ["GK",50,88],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["ST", 50, 18]
   ],
 
   3: [
-    ["GK",50,88],
-    ["ST",32,20],
-    ["ST",68,20]
+    ["GK", 50, 88],
+    ["ST", 32, 20],
+    ["ST", 68, 20]
   ],
 
   4: [
-    ["GK",50,88],
-    ["LB",25,60],
-    ["RB",75,60],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 25, 60],
+    ["RB", 75, 60],
+    ["ST", 50, 18]
   ],
 
   5: [
-    ["GK",50,88],
-    ["LB",18,62],
-    ["CB",50,62],
-    ["RB",82,62],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 18, 62],
+    ["CB", 50, 62],
+    ["RB", 82, 62],
+    ["ST", 50, 18]
   ],
 
   6: [
-    ["GK",50,88],
-    ["LB",15,64],
-    ["CB",38,64],
-    ["CB",62,64],
-    ["RB",85,64],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 15, 64],
+    ["CB", 38, 64],
+    ["CB", 62, 64],
+    ["RB", 85, 64],
+    ["ST", 50, 18]
   ],
 
   7: [
-    ["GK",50,88],
-    ["LB",12,64],
-    ["CB",34,66],
-    ["CB",66,66],
-    ["RB",88,64],
-    ["LW",30,35],
-    ["ST",68,22]
+    ["GK", 50, 88],
+    ["LB", 12, 64],
+    ["CB", 34, 66],
+    ["CB", 66, 66],
+    ["RB", 88, 64],
+    ["LW", 30, 35],
+    ["ST", 68, 22]
   ],
 
   8: [
-    ["GK",50,88],
-    ["LB",10,65],
-    ["CB",30,67],
-    ["CB",70,67],
-    ["RB",90,65],
-    ["LM",25,38],
-    ["RM",75,38],
-    ["ST",50,18]
+    ["GK", 50, 88],
+    ["LB", 10, 65],
+    ["CB", 30, 67],
+    ["CB", 70, 67],
+    ["RB", 90, 65],
+    ["LM", 25, 38],
+    ["RM", 75, 38],
+    ["ST", 50, 18]
   ],
 
   9: [
-    ["GK",50,88],
-    ["LB",9,66],
-    ["CB",29,69],
-    ["CB",50,69],
-    ["CB",71,69],
-    ["RB",91,66],
-    ["LW",23,37],
-    ["RW",77,37],
-    ["ST",50,17]
+    ["GK", 50, 88],
+    ["LB", 9, 66],
+    ["CB", 29, 69],
+    ["CB", 50, 69],
+    ["CB", 71, 69],
+    ["RB", 91, 66],
+    ["LW", 23, 37],
+    ["RW", 77, 37],
+    ["ST", 50, 17]
   ],
 
   10: [
-    ["GK",50,88],
-    ["LB",8,67],
-    ["CB",27,70],
-    ["CB",50,70],
-    ["CB",73,70],
-    ["RB",92,67],
-    ["LM",22,43],
-    ["RM",78,43],
-    ["LW",34,23],
-    ["ST",66,20]
+    ["GK", 50, 88],
+    ["LB", 8, 67],
+    ["CB", 27, 70],
+    ["CB", 50, 70],
+    ["CB", 73, 70],
+    ["RB", 92, 67],
+    ["LM", 22, 43],
+    ["RM", 78, 43],
+    ["LW", 34, 23],
+    ["ST", 66, 20]
   ],
 
   11: [
-    ["GK",50,90],
-    ["LB",8,69],
-    ["CB",28,72],
-    ["CB",50,72],
-    ["CB",72,72],
-    ["RB",92,69],
-    ["LM",17,46],
-    ["CM",38,47],
-    ["CM",62,47],
-    ["RM",83,46],
-    ["ST",50,17]
+    ["GK", 50, 90],
+    ["LB", 8, 69],
+    ["CB", 28, 72],
+    ["CB", 50, 72],
+    ["CB", 72, 72],
+    ["RB", 92, 69],
+    ["LM", 17, 46],
+    ["CM", 38, 47],
+    ["CM", 62, 47],
+    ["RM", 83, 46],
+    ["ST", 50, 17]
   ]
 };
+
+const positionNames = [
+  "GK",
+  "LB",
+  "CB",
+  "RB",
+  "LM",
+  "CM",
+  "RM",
+  "LW",
+  "RW",
+  "ST"
+];
 
 function createSession(interaction, size) {
   const roster = formations[size].map((p, index) => ({
@@ -192,109 +204,97 @@ function getBaseUrl() {
 }
 
 /* =========================
-   POSITION READER
+   POSITION LOOKUP
 ========================= */
 
-const POSITION_NAMES = [
-  "GK",
-  "CB",
-  "CM",
-  "ST",
-  "LW",
-  "RW",
-  "LB",
-  "RB",
-  "LM",
-  "RM",
-  "CAM",
-  "CDM",
-  "CF",
-  "LWB",
-  "RWB"
-];
-
 function detectPosition(text) {
-  const upper = String(text || "").toUpperCase();
+  if (!text) return null;
 
-  for (const pos of POSITION_NAMES) {
+  const upper = String(text).toUpperCase();
+
+  const sorted = [...positionNames].sort(
+    (a, b) => b.length - a.length
+  );
+
+  for (const position of sorted) {
     const regex = new RegExp(
-      `(^|[^A-Z])${pos}([^A-Z]|$)`
+      `(^|[^A-Z])${position}([^A-Z]|$)`,
+      "i"
     );
 
     if (regex.test(upper)) {
-      return pos;
+      return position;
     }
   }
 
-  return "Other";
+  return null;
 }
 
-function messageMatchesMember(message, member) {
-  const content = String(message.content || "").toLowerCase();
+async function getPositionMap(guild) {
+  const map = new Map();
 
-  if (content.includes(`<@${member.id}>`)) {
-    return true;
-  }
+  if (!guild) return map;
 
-  if (content.includes(`<@!${member.id}>`)) {
-    return true;
-  }
+  let channel;
 
-  const names = [
-    member.displayName,
-    member.user.username,
-    member.user.globalName
-  ].filter(Boolean);
-
-  for (const name of names) {
-    const clean = String(name).trim().toLowerCase();
-
-    if (clean.length >= 2 && content.includes(clean)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-async function getMemberPosition(member) {
   try {
-    const channel = await client.channels.fetch(
-      POSITION_CHANNEL_ID
-    );
+    channel = await guild.channels.fetch(POSITION_CHANNEL_ID);
+  } catch (error) {
+    console.error("Could not fetch position channel:", error);
+    return map;
+  }
 
-    if (!channel || !channel.isTextBased()) {
-      return "Other";
-    }
+  if (!channel || !channel.isTextBased()) {
+    console.error("Position channel is not a text channel.");
+    return map;
+  }
 
-    const messages = await channel.messages.fetch({
-      limit: 100
-    });
+  try {
+    let before;
+    let loops = 0;
 
-    const relevant = messages
-      .filter(message =>
-        messageMatchesMember(message, member)
-      )
-      .sort(
-        (a, b) =>
-          b.createdTimestamp - a.createdTimestamp
-      );
+    while (loops < 20) {
+      const options = {
+        limit: 100
+      };
 
-    for (const message of relevant.values()) {
-      const position = detectPosition(message.content);
-
-      if (position !== "Other") {
-        return position;
+      if (before) {
+        options.before = before;
       }
+
+      const messages = await channel.messages.fetch(options);
+
+      if (!messages.size) break;
+
+      for (const message of messages.values()) {
+        if (message.author.bot) continue;
+
+        const position = detectPosition(message.content);
+
+        if (position) {
+          map.set(message.author.id, position);
+        }
+
+        for (const user of message.mentions.users.values()) {
+          const mentionedPosition =
+            detectPosition(message.content);
+
+          if (mentionedPosition) {
+            map.set(user.id, mentionedPosition);
+          }
+        }
+      }
+
+      before = messages.last().id;
+      loops++;
+
+      if (messages.size < 100) break;
     }
   } catch (error) {
-    console.error(
-      "Position channel error:",
-      error.message
-    );
+    console.error("Position channel error:", error);
   }
 
-  return "Other";
+  return map;
 }
 
 /* =========================
@@ -359,27 +359,21 @@ client.on("interactionCreate", async interaction => {
       interaction.customId.startsWith("lineup_size_")
     ) {
       const size = Number(
-        interaction.customId.replace(
-          "lineup_size_",
-          ""
-        )
+        interaction.customId.replace("lineup_size_", "")
       );
 
       if (size < 1 || size > 11) {
-        return interaction.reply({
+        await interaction.reply({
           content: "Invalid lineup size.",
           ephemeral: true
         });
+        return;
       }
 
-      const session = createSession(
-        interaction,
-        size
-      );
+      const session = createSession(interaction, size);
 
       const url =
-        `${getBaseUrl()}/pitch/${session.id}` +
-        `?uid=${interaction.user.id}`;
+        `${getBaseUrl()}/pitch/${session.id}?uid=${interaction.user.id}`;
 
       const button =
         new ButtonBuilder()
@@ -395,29 +389,23 @@ client.on("interactionCreate", async interaction => {
           new ActionRowBuilder().addComponents(button)
         ]
       });
-
-      return;
     }
   } catch (error) {
-    console.error(
-      "Discord interaction error:",
-      error
-    );
+    console.error("Discord interaction error:", error);
 
-    if (
-      !interaction.replied &&
-      !interaction.deferred
-    ) {
-      await interaction.reply({
-        content: "Something went wrong.",
-        ephemeral: true
-      });
-    }
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "Something went wrong.",
+          ephemeral: true
+        });
+      }
+    } catch {}
   }
 });
 
 /* =========================
-   HTTP
+   HTTP SERVER
 ========================= */
 
 const server = http.createServer(async (req, res) => {
@@ -444,9 +432,7 @@ const server = http.createServer(async (req, res) => {
         return sendHtml(
           res,
           404,
-          errorPage(
-            "Lineup not found or expired."
-          )
+          errorPage("Lineup not found or expired.")
         );
       }
 
@@ -473,9 +459,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const guild =
-        client.guilds.cache.get(
-          session.guildId
-        );
+        client.guilds.cache.get(session.guildId);
 
       let serverMembers = [];
 
@@ -484,33 +468,29 @@ const server = http.createServer(async (req, res) => {
           const fetched =
             await guild.members.fetch();
 
-          const currentMembers =
-            fetched.filter(
-              m => !m.user.bot
-            );
+          const positionMap =
+            await getPositionMap(guild);
 
-          for (const member of currentMembers.values()) {
-            const position =
-              await getMemberPosition(member);
-
-            serverMembers.push({
-              id: member.user.id,
-              name: member.displayName,
-              username: member.user.username,
-              position,
-              avatar:
-                member.user.displayAvatarURL({
-                  extension: "png",
-                  size: 256,
-                  forceStatic: true
-                })
-            });
-          }
+          serverMembers =
+            fetched
+              .filter(m => !m.user.bot)
+              .map(m => ({
+                id: m.user.id,
+                name: m.displayName,
+                username: m.user.username,
+                avatar:
+                  m.user.displayAvatarURL({
+                    extension: "png",
+                    size: 256
+                  }),
+                detectedPosition:
+                  positionMap.get(m.user.id) || "OTHER"
+              })
+              .sort((a, b) =>
+                a.name.localeCompare(b.name)
+              );
         } catch (error) {
-          console.error(
-            "Member fetch error:",
-            error
-          );
+          console.error("Member fetch error:", error);
         }
       }
 
@@ -549,78 +529,43 @@ const server = http.createServer(async (req, res) => {
 
       if (Array.isArray(body.roster)) {
         body.roster.forEach((p, index) => {
-          if (!session.roster[index]) return;
+          const target = session.roster[index];
 
-          const target =
-            session.roster[index];
+          if (!target) return;
 
-          if (
-            Number.isFinite(
-              Number(p.x)
-            )
-          ) {
+          if (Number.isFinite(Number(p.x))) {
             target.x = Math.max(
               4,
-              Math.min(
-                96,
-                Number(p.x)
-              )
+              Math.min(96, Number(p.x))
             );
           }
 
-          if (
-            Number.isFinite(
-              Number(p.y)
-            )
-          ) {
+          if (Number.isFinite(Number(p.y))) {
             target.y = Math.max(
               4,
-              Math.min(
-                96,
-                Number(p.y)
-              )
+              Math.min(96, Number(p.y))
             );
           }
 
-          if (
-            typeof p.bench ===
-            "boolean"
-          ) {
+          if (typeof p.bench === "boolean") {
             target.bench = p.bench;
           }
 
-          if (
-            typeof p.position ===
-            "string"
-          ) {
+          if (typeof p.position === "string") {
             target.position =
-              p.position
-                .trim()
-                .slice(0, 20);
+              p.position.trim().slice(0, 20);
           }
 
-          if (
-            typeof p.userId ===
-            "string"
-          ) {
-            target.userId =
-              p.userId;
+          if (typeof p.userId === "string") {
+            target.userId = p.userId;
           }
 
-          if (
-            typeof p.name ===
-            "string"
-          ) {
-            target.name =
-              p.name;
+          if (typeof p.name === "string") {
+            target.name = p.name;
           }
 
-          if (
-            typeof p.avatar ===
-            "string"
-          ) {
-            target.avatar =
-              p.avatar;
+          if (typeof p.avatar === "string") {
+            target.avatar = p.avatar;
           }
         });
       }
@@ -638,8 +583,7 @@ const server = http.createServer(async (req, res) => {
       req.method === "POST"
     ) {
       const body = await readBody(req);
-      const session =
-        sessions.get(body.session);
+      const session = sessions.get(body.session);
 
       if (!session) {
         return sendJson(res, 404, {
@@ -654,9 +598,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const slot =
-        session.roster[
-          Number(body.slot)
-        ];
+        session.roster[Number(body.slot)];
 
       if (!slot) {
         return sendJson(res, 400, {
@@ -665,56 +607,60 @@ const server = http.createServer(async (req, res) => {
       }
 
       const guild =
-        client.guilds.cache.get(
-          session.guildId
-        );
+        client.guilds.cache.get(session.guildId);
 
       if (!guild) {
         return sendJson(res, 500, {
-          error:
-            "Discord server unavailable."
+          error: "Discord server unavailable."
         });
       }
 
-      const member =
-        await guild.members.fetch(
-          body.userId
-        );
+      let member;
 
-      if (
-        !member ||
-        member.user.bot
-      ) {
+      try {
+        member =
+          await guild.members.fetch(
+            String(body.userId)
+          );
+      } catch {
+        return sendJson(res, 404, {
+          error: "Player not found in server."
+        });
+      }
+
+      if (!member || member.user.bot) {
         return sendJson(res, 404, {
           error: "Player not found."
         });
       }
 
-      const position =
-        await getMemberPosition(member);
+      const positionMap =
+        await getPositionMap(guild);
 
-      slot.userId =
-        member.user.id;
-
-      slot.name =
-        member.displayName;
-
+      slot.userId = member.user.id;
+      slot.name = member.displayName;
       slot.avatar =
         member.user.displayAvatarURL({
           extension: "png",
-          size: 256,
-          forceStatic: true
+          size: 256
         });
 
-      slot.position =
-        position;
+      /*
+       * Automatically use their position from
+       * the position channel if one exists.
+       */
+      const detected =
+        positionMap.get(member.user.id);
+
+      if (detected) {
+        slot.position = detected;
+      }
 
       /*
-       IMPORTANT:
-       assigning a player NEVER changes
-       another player's bench status.
-      */
-
+       * IMPORTANT:
+       * Assigning a player NEVER automatically
+       * benches or removes another player.
+       */
       slot.bench = false;
 
       return sendJson(res, 200, {
@@ -730,8 +676,7 @@ const server = http.createServer(async (req, res) => {
       req.method === "POST"
     ) {
       const body = await readBody(req);
-      const session =
-        sessions.get(body.session);
+      const session = sessions.get(body.session);
 
       if (!session) {
         return sendJson(res, 404, {
@@ -746,9 +691,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const slot =
-        session.roster[
-          Number(body.slot)
-        ];
+        session.roster[Number(body.slot)];
 
       if (!slot) {
         return sendJson(res, 400, {
@@ -757,21 +700,17 @@ const server = http.createServer(async (req, res) => {
       }
 
       const position =
-        String(
-          body.position || ""
-        )
+        String(body.position || "")
           .trim()
           .slice(0, 20);
 
       if (!position) {
         return sendJson(res, 400, {
-          error:
-            "Position cannot be empty."
+          error: "Position cannot be empty."
         });
       }
 
-      slot.position =
-        position.toUpperCase();
+      slot.position = position;
 
       return sendJson(res, 200, {
         success: true,
@@ -786,8 +725,7 @@ const server = http.createServer(async (req, res) => {
       req.method === "POST"
     ) {
       const body = await readBody(req);
-      const session =
-        sessions.get(body.session);
+      const session = sessions.get(body.session);
 
       if (!session) {
         return sendJson(res, 404, {
@@ -797,15 +735,12 @@ const server = http.createServer(async (req, res) => {
 
       if (body.uid !== session.creatorId) {
         return sendJson(res, 403, {
-          error:
-            "You cannot edit this lineup."
+          error: "You cannot edit this lineup."
         });
       }
 
       const slot =
-        session.roster[
-          Number(body.slot)
-        ];
+        session.roster[Number(body.slot)];
 
       if (!slot) {
         return sendJson(res, 400, {
@@ -816,10 +751,7 @@ const server = http.createServer(async (req, res) => {
       let x = Number(body.x);
       let y = Number(body.y);
 
-      if (
-        !Number.isFinite(x) ||
-        !Number.isFinite(y)
-      ) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
         return sendJson(res, 400, {
           error: "Invalid coordinates."
         });
@@ -831,8 +763,8 @@ const server = http.createServer(async (req, res) => {
       );
 
       slot.y = Math.max(
-        4,
-        Math.min(96, y)
+        5,
+        Math.min(95, y)
       );
 
       return sendJson(res, 200, {
@@ -848,8 +780,7 @@ const server = http.createServer(async (req, res) => {
       req.method === "POST"
     ) {
       const body = await readBody(req);
-      const session =
-        sessions.get(body.session);
+      const session = sessions.get(body.session);
 
       if (!session) {
         return sendJson(res, 404, {
@@ -859,15 +790,12 @@ const server = http.createServer(async (req, res) => {
 
       if (body.uid !== session.creatorId) {
         return sendJson(res, 403, {
-          error:
-            "You cannot edit this lineup."
+          error: "You cannot edit this lineup."
         });
       }
 
       const slot =
-        session.roster[
-          Number(body.slot)
-        ];
+        session.roster[Number(body.slot)];
 
       if (!slot) {
         return sendJson(res, 400, {
@@ -875,8 +803,11 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      slot.bench =
-        Boolean(body.bench);
+      /*
+       * This only changes the selected slot.
+       * It does NOT affect any other player.
+       */
+      slot.bench = Boolean(body.bench);
 
       return sendJson(res, 200, {
         success: true,
@@ -887,16 +818,11 @@ const server = http.createServer(async (req, res) => {
     /* FINISH */
 
     if (
-      url.pathname.startsWith(
-        "/api/finish/"
-      ) &&
+      url.pathname.startsWith("/api/finish/") &&
       req.method === "POST"
     ) {
-      const id =
-        url.pathname.split("/")[3];
-
-      const session =
-        sessions.get(id);
+      const id = url.pathname.split("/")[3];
+      const session = sessions.get(id);
 
       if (!session) {
         return sendJson(res, 404, {
@@ -904,47 +830,32 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      const body =
-        await readBody(req);
+      const body = await readBody(req);
 
-      if (
-        body.uid !==
-        session.creatorId
-      ) {
+      if (body.uid !== session.creatorId) {
         return sendJson(res, 403, {
-          error:
-            "You cannot finish this lineup."
+          error: "You cannot finish this lineup."
         });
       }
 
       session.finished = true;
 
       const image =
-        await createPitchImage(
-          session
-        );
+        await createPitchImage(session);
 
       const attachment =
-        new AttachmentBuilder(
-          image,
-          {
-            name:
-              "newcastle-lineup.png"
-          }
-        );
+        new AttachmentBuilder(image, {
+          name: "newcastle-lineup.png"
+        });
 
       const playing =
         session.roster.filter(
-          p =>
-            p.userId &&
-            !p.bench
+          p => p.userId && !p.bench
         );
 
       const bench =
         session.roster.filter(
-          p =>
-            p.userId &&
-            p.bench
+          p => p.userId && p.bench
         );
 
       let text =
@@ -991,27 +902,17 @@ const server = http.createServer(async (req, res) => {
       errorPage("Page not found.")
     );
   } catch (error) {
-    console.error(
-      "HTTP error:",
-      error
-    );
+    console.error("HTTP error:", error);
 
     return sendJson(res, 500, {
-      error:
-        "Internal server error."
+      error: "Internal server error."
     });
   }
 });
 
-server.listen(
-  PORT,
-  "0.0.0.0",
-  () => {
-    console.log(
-      `Web server listening on ${PORT}`
-    );
-  }
-);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Web server listening on ${PORT}`);
+});
 
 client.login(TOKEN);
 
@@ -1019,86 +920,45 @@ client.login(TOKEN);
    HELPERS
 ========================= */
 
-function sendHtml(
-  res,
-  status,
-  html
-) {
-  res.writeHead(
-    status,
-    {
-      "Content-Type":
-        "text/html; charset=utf-8"
-    }
-  );
+function sendHtml(res, status, html) {
+  res.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8"
+  });
 
   res.end(html);
 }
 
-function sendJson(
-  res,
-  status,
-  data
-) {
-  res.writeHead(
-    status,
-    {
-      "Content-Type":
-        "application/json; charset=utf-8"
-    }
-  );
+function sendJson(res, status, data) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8"
+  });
 
-  res.end(
-    JSON.stringify(data)
-  );
+  res.end(JSON.stringify(data));
 }
 
 function readBody(req) {
-  return new Promise(
-    (resolve, reject) => {
-      let data = "";
+  return new Promise((resolve, reject) => {
+    let data = "";
 
-      req.on(
-        "data",
-        chunk => {
-          data += chunk;
+    req.on("data", chunk => {
+      data += chunk;
 
-          if (
-            data.length >
-            1000000
-          ) {
-            reject(
-              new Error(
-                "Request too large"
-              )
-            );
+      if (data.length > 1000000) {
+        reject(new Error("Request too large"));
+        req.destroy();
+      }
+    });
 
-            req.destroy();
-          }
-        }
-      );
+    req.on("end", () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
 
-      req.on(
-        "end",
-        () => {
-          try {
-            resolve(
-              data
-                ? JSON.parse(data)
-                : {}
-            );
-          } catch {
-            resolve({});
-          }
-        }
-      );
-
-      req.on(
-        "error",
-        reject
-      );
-    }
-  );
+    req.on("error", reject);
+  });
 }
 
 function errorPage(message) {
@@ -1106,10 +966,8 @@ function errorPage(message) {
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport"
-content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Newcastle Assistant</title>
-
 <style>
 body{
 margin:0;
@@ -1121,7 +979,6 @@ background:#07130c;
 color:white;
 font-family:Arial;
 }
-
 .box{
 padding:30px;
 background:#101b14;
@@ -1129,119 +986,36 @@ border-radius:16px;
 text-align:center;
 }
 </style>
-
 </head>
-
 <body>
-
 <div class="box">
 <h1>⚽ Newcastle Assistant</h1>
 <p>${escapeHtml(message)}</p>
 </div>
-
 </body>
 </html>`;
 }
 
 /* =========================
-   AVATAR DOWNLOADER
+   DOWNLOAD IMAGE
 ========================= */
 
-function downloadImage(url) {
-  return new Promise(
-    (resolve, reject) => {
-      if (!url) {
-        reject(
-          new Error(
-            "No image URL"
-          )
-        );
-        return;
-      }
-
-      https.get(
-        url,
-        {
-          headers: {
-            "User-Agent":
-              "Newcastle-Lineup-Bot"
-          }
-        },
-        response => {
-          if (
-            response.statusCode >=
-              300 &&
-            response.statusCode < 400 &&
-            response.headers.location
-          ) {
-            downloadImage(
-              response.headers.location
-            )
-              .then(resolve)
-              .catch(reject);
-
-            return;
-          }
-
-          if (
-            response.statusCode !==
-            200
-          ) {
-            reject(
-              new Error(
-                `Avatar HTTP ${response.statusCode}`
-              )
-            );
-            return;
-          }
-
-          const chunks = [];
-
-          response.on(
-            "data",
-            chunk =>
-              chunks.push(chunk)
-          );
-
-          response.on(
-            "end",
-            () => {
-              resolve(
-                Buffer.concat(chunks)
-              );
-            }
-          );
-        }
-      ).on(
-        "error",
-        reject
-      );
-    }
-  );
-}
-
-async function avatarToDataUri(url) {
+async function downloadAvatar(url) {
   try {
-    const buffer =
-      await downloadImage(url);
+    if (!url) return null;
 
-    const png =
-      await sharp(buffer)
-        .resize(120, 120, {
-          fit: "cover"
-        })
-        .png()
-        .toBuffer();
+    const response = await fetch(url);
 
-    return `data:image/png;base64,${png.toString(
-      "base64"
-    )}`;
+    if (!response.ok) {
+      return null;
+    }
+
+    const arrayBuffer =
+      await response.arrayBuffer();
+
+    return Buffer.from(arrayBuffer);
   } catch (error) {
-    console.error(
-      "Avatar conversion failed:",
-      error.message
-    );
-
+    console.error("Avatar download failed:", error);
     return null;
   }
 }
@@ -1250,310 +1024,247 @@ async function avatarToDataUri(url) {
    FINAL IMAGE
 ========================= */
 
-async function createPitchImage(
-  session
-) {
+async function createPitchImage(session) {
   const width = 1200;
   const height = 900;
   const pitchHeight = 760;
 
   const playing =
     session.roster.filter(
-      p =>
-        p.userId &&
-        !p.bench
+      p => p.userId && !p.bench
     );
 
   const bench =
     session.roster.filter(
-      p =>
-        p.userId &&
-        p.bench
+      p => p.userId && p.bench
     );
 
-  const avatarCache =
-    new Map();
+  const avatarData = new Map();
 
-  async function getAvatar(
-    player
-  ) {
-    if (!player.avatar) {
-      return null;
-    }
+  for (const player of [
+    ...playing,
+    ...bench
+  ]) {
+    if (!player.avatar) continue;
 
-    if (
-      avatarCache.has(
-        player.avatar
-      )
-    ) {
-      return avatarCache.get(
-        player.avatar
+    const buffer =
+      await downloadAvatar(player.avatar);
+
+    if (buffer) {
+      avatarData.set(
+        player.slot,
+        `data:image/png;base64,${buffer.toString("base64")}`
       );
     }
-
-    const uri =
-      await avatarToDataUri(
-        player.avatar
-      );
-
-    avatarCache.set(
-      player.avatar,
-      uri
-    );
-
-    return uri;
   }
 
   const players =
-    (
-      await Promise.all(
-        playing.map(
-          async p => {
-            const x =
-              (p.x / 100) *
-              width;
+    playing.map(player => {
+      const x =
+        (player.x / 100) * width;
 
-            const y =
-              (p.y / 100) *
-              pitchHeight;
+      const y =
+        (player.y / 100) * pitchHeight;
 
-            const avatar =
-              await getAvatar(
-                p
-              );
+      const avatar =
+        avatarData.get(player.slot);
 
-            const safeName =
-              escapeSvg(
-                p.name ||
-                  "Player"
-              );
+      const firstLetter =
+        player.name
+          ? player.name.charAt(0).toUpperCase()
+          : "?";
 
-            const firstLetter =
-              escapeSvg(
-                p.name
-                  ? p.name
-                      .charAt(0)
-                      .toUpperCase()
-                  : "?"
-              );
-
-            let picture = "";
-
-            if (avatar) {
-              picture = `
-<defs>
-<clipPath id="clip-${p.slot}">
-<circle
-cx="${x}"
-cy="${y}"
-r="30"
-/>
-</clipPath>
-</defs>
-
-<image
-href="${avatar}"
-x="${x - 30}"
-y="${y - 30}"
-width="60"
-height="60"
-preserveAspectRatio="xMidYMid slice"
-clip-path="url(#clip-${p.slot})"
-/>`;
-            } else {
-              picture = `
-<circle
-cx="${x}"
-cy="${y}"
-r="30"
-fill="#6f7772"
-/>
-
-<text
-x="${x}"
-y="${y + 7}"
-text-anchor="middle"
-fill="white"
-font-family="Arial"
-font-size="21"
-font-weight="bold"
->
-${firstLetter}
-</text>`;
-            }
-
-            return `
+      return `
 <g>
+  ${
+    avatar
+      ? `
+      <defs>
+        <clipPath id="clip${player.slot}">
+          <circle
+            cx="${x}"
+            cy="${y}"
+            r="34"
+          />
+        </clipPath>
+      </defs>
 
-<circle
-cx="${x}"
-cy="${y}"
-r="34"
-fill="#202a24"
-stroke="white"
-stroke-width="4"
-/>
+      <circle
+        cx="${x}"
+        cy="${y}"
+        r="36"
+        fill="#202a24"
+        stroke="white"
+        stroke-width="4"
+      />
 
-${picture}
+      <image
+        href="${avatar}"
+        x="${x - 34}"
+        y="${y - 34}"
+        width="68"
+        height="68"
+        preserveAspectRatio="xMidYMid slice"
+        clip-path="url(#clip${player.slot})"
+      />
+      `
+      : `
+      <circle
+        cx="${x}"
+        cy="${y}"
+        r="34"
+        fill="#202a24"
+        stroke="white"
+        stroke-width="4"
+      />
 
-<rect
-x="${x - 75}"
-y="${y + 39}"
-width="150"
-height="28"
-rx="7"
-fill="#07130c"
-/>
+      <text
+        x="${x}"
+        y="${y + 7}"
+        text-anchor="middle"
+        fill="white"
+        font-family="Arial"
+        font-size="22"
+        font-weight="bold"
+      >
+        ${escapeSvg(firstLetter)}
+      </text>
+      `
+  }
 
-<text
-x="${x}"
-y="${y + 58}"
-text-anchor="middle"
-fill="white"
-font-family="Arial"
-font-size="15"
-font-weight="bold"
->
-${safeName}
-</text>
+  <rect
+    x="${x - 70}"
+    y="${y + 39}"
+    width="140"
+    height="28"
+    rx="7"
+    fill="#07130c"
+  />
 
-<text
-x="${x}"
-y="${y + 83}"
-text-anchor="middle"
-fill="white"
-font-family="Arial"
-font-size="13"
-font-weight="bold"
->
-${escapeSvg(
-  p.position ||
-    "Other"
-)}
-</text>
+  <text
+    x="${x}"
+    y="${y + 58}"
+    text-anchor="middle"
+    fill="white"
+    font-family="Arial"
+    font-size="15"
+    font-weight="bold"
+  >
+    ${escapeSvg(player.name || "Player")}
+  </text>
 
+  <text
+    x="${x}"
+    y="${y + 83}"
+    text-anchor="middle"
+    fill="white"
+    font-family="Arial"
+    font-size="13"
+    font-weight="bold"
+  >
+    ${escapeSvg(player.position)}
+  </text>
 </g>`;
-          }
-        )
-      )
-    ).join("");
+    }).join("");
 
   const benchPlayers =
-    (
-      await Promise.all(
-        bench.map(
-          async (p, i) => {
-            const x =
-              70 +
-              i * 180;
+    bench.map((player, i) => {
+      const x =
+        70 + (i % 6) * 205;
 
-            const avatar =
-              await getAvatar(
-                p
-              );
+      const y =
+        830 + Math.floor(i / 6) * 55;
 
-            const firstLetter =
-              escapeSvg(
-                p.name
-                  ? p.name
-                      .charAt(0)
-                      .toUpperCase()
-                  : "?"
-              );
+      const avatar =
+        avatarData.get(player.slot);
 
-            let picture = "";
+      const firstLetter =
+        player.name
+          ? player.name.charAt(0).toUpperCase()
+          : "?";
 
-            if (avatar) {
-              picture = `
-<defs>
-<clipPath id="benchclip-${p.slot}">
-<circle
-cx="${x}"
-cy="830"
-r="25"
-/>
-</clipPath>
-</defs>
-
-<image
-href="${avatar}"
-x="${x - 25}"
-y="805"
-width="50"
-height="50"
-preserveAspectRatio="xMidYMid slice"
-clip-path="url(#benchclip-${p.slot})"
-/>`;
-            } else {
-              picture = `
-<circle
-cx="${x}"
-cy="830"
-r="25"
-fill="#6f7772"
-/>
-
-<text
-x="${x}"
-y="836"
-text-anchor="middle"
-fill="white"
-font-family="Arial"
-font-size="17"
-font-weight="bold"
->
-${firstLetter}
-</text>`;
-            }
-
-            return `
+      return `
 <g>
+  ${
+    avatar
+      ? `
+      <defs>
+        <clipPath id="benchClip${player.slot}">
+          <circle
+            cx="${x}"
+            cy="${y}"
+            r="25"
+          />
+        </clipPath>
+      </defs>
 
-<circle
-cx="${x}"
-cy="830"
-r="28"
-fill="#202a24"
-stroke="white"
-stroke-width="3"
-/>
+      <circle
+        cx="${x}"
+        cy="${y}"
+        r="27"
+        fill="#202a24"
+        stroke="white"
+        stroke-width="3"
+      />
 
-${picture}
+      <image
+        href="${avatar}"
+        x="${x - 25}"
+        y="${y - 25}"
+        width="50"
+        height="50"
+        preserveAspectRatio="xMidYMid slice"
+        clip-path="url(#benchClip${player.slot})"
+      />
+      `
+      : `
+      <circle
+        cx="${x}"
+        cy="${y}"
+        r="25"
+        fill="#202a24"
+        stroke="white"
+        stroke-width="3"
+      />
 
-<text
-x="${x}"
-y="870"
-text-anchor="middle"
-fill="white"
-font-family="Arial"
-font-size="13"
-font-weight="bold"
->
-${escapeSvg(
-  p.name ||
-    "Player"
-)}
-</text>
+      <text
+        x="${x}"
+        y="${y + 6}"
+        text-anchor="middle"
+        fill="white"
+        font-family="Arial"
+        font-size="16"
+        font-weight="bold"
+      >
+        ${escapeSvg(firstLetter)}
+      </text>
+      `
+  }
 
-<text
-x="${x}"
-y="888"
-text-anchor="middle"
-fill="#d9e0db"
-font-family="Arial"
-font-size="11"
->
-${escapeSvg(
-  p.position ||
-    "Other"
-)}
-</text>
+  <text
+    x="${x}"
+    y="${y + 43}"
+    text-anchor="middle"
+    fill="white"
+    font-family="Arial"
+    font-size="13"
+    font-weight="bold"
+  >
+    ${escapeSvg(player.name || "Player")}
+  </text>
 
+  <text
+    x="${x}"
+    y="${y + 59}"
+    text-anchor="middle"
+    fill="#d9e0db"
+    font-family="Arial"
+    font-size="11"
+  >
+    ${escapeSvg(player.position)}
+  </text>
 </g>`;
-          }
-        )
-      )
-    ).join("");
+    }).join("");
 
   const svg = `
 <svg
@@ -1564,7 +1275,6 @@ viewBox="0 0 ${width} ${height}"
 >
 
 <defs>
-
 <linearGradient
 id="grass"
 x1="0"
@@ -1572,24 +1282,10 @@ y1="0"
 x2="0"
 y2="1"
 >
-
-<stop
-offset="0%"
-stop-color="#247b42"
-/>
-
-<stop
-offset="50%"
-stop-color="#1f713c"
-/>
-
-<stop
-offset="100%"
-stop-color="#247b42"
-/>
-
+<stop offset="0%" stop-color="#247b42"/>
+<stop offset="50%" stop-color="#1f713c"/>
+<stop offset="100%" stop-color="#247b42"/>
 </linearGradient>
-
 </defs>
 
 <rect
@@ -1673,7 +1369,7 @@ width="1164"
 height="112"
 rx="12"
 fill="#07130c"
-opacity=".95"
+opacity=".92"
 />
 
 <text
@@ -1706,18 +1402,14 @@ ${benchPlayers}
 function pitchPage(session) {
   const original =
     JSON.stringify(
-      session.roster.map(
-        p => ({
-          x: p.x,
-          y: p.y
-        })
-      )
+      session.roster.map(p => ({
+        x: p.x,
+        y: p.y
+      }))
     );
 
   return `<!DOCTYPE html>
-
 <html>
-
 <head>
 
 <meta charset="UTF-8">
@@ -1727,7 +1419,7 @@ name="viewport"
 content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
 >
 
-<title>Newcastle Lineup</title>
+<title>Football Lineup</title>
 
 <style>
 
@@ -1735,8 +1427,7 @@ content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
 box-sizing:border-box;
 }
 
-html,
-body{
+html,body{
 margin:0;
 width:100%;
 min-height:100%;
@@ -1806,10 +1497,7 @@ padding:18px;
 }
 
 .pitch-area{
-width:min(
-1000px,
-calc(100vw - 310px)
-);
+width:min(1000px,calc(100vw - 310px));
 }
 
 .pitch-wrap{
@@ -1834,9 +1522,7 @@ to bottom,
 #1f713c 140px
 );
 
-box-shadow:
-0 20px 60px
-rgba(0,0,0,.5);
+box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
 
 .pitch.grid-on::after{
@@ -1846,14 +1532,12 @@ inset:0;
 
 background-image:
 linear-gradient(
-rgba(255,255,255,.10)
-1px,
+rgba(255,255,255,.10) 1px,
 transparent 1px
 ),
 linear-gradient(
 90deg,
-rgba(255,255,255,.10)
-1px,
+rgba(255,255,255,.10) 1px,
 transparent 1px
 );
 
@@ -1868,9 +1552,7 @@ position:absolute;
 left:0;
 right:0;
 top:50%;
-border-top:
-3px solid
-rgba(255,255,255,.85);
+border-top:3px solid rgba(255,255,255,.85);
 }
 
 .center-circle{
@@ -1879,8 +1561,7 @@ left:50%;
 top:50%;
 width:150px;
 height:150px;
-transform:
-translate(-50%,-50%);
+transform:translate(-50%,-50%);
 border:3px solid white;
 border-radius:50%;
 }
@@ -1891,8 +1572,7 @@ left:50%;
 top:50%;
 width:8px;
 height:8px;
-transform:
-translate(-50%,-50%);
+transform:translate(-50%,-50%);
 background:white;
 border-radius:50%;
 }
@@ -1900,8 +1580,7 @@ border-radius:50%;
 .box{
 position:absolute;
 left:50%;
-transform:
-translateX(-50%);
+transform:translateX(-50%);
 width:36%;
 height:18%;
 border-left:3px solid white;
@@ -1921,8 +1600,7 @@ border-top:3px solid white;
 .six{
 position:absolute;
 left:50%;
-transform:
-translateX(-50%);
+transform:translateX(-50%);
 width:17%;
 height:8%;
 border-left:3px solid white;
@@ -1945,8 +1623,7 @@ border-top:3px solid white;
 position:absolute;
 width:88px;
 min-height:90px;
-transform:
-translate(-50%,-50%);
+transform:translate(-50%,-50%);
 text-align:center;
 z-index:10;
 touch-action:none;
@@ -1965,16 +1642,14 @@ height:54px;
 margin:auto;
 border-radius:50%;
 border:3px solid white;
-background:#6f7772;
+background:#777f7a;
 display:flex;
 align-items:center;
 justify-content:center;
 overflow:hidden;
 font-size:20px;
 font-weight:900;
-box-shadow:
-0 5px 15px
-rgba(0,0,0,.4);
+box-shadow:0 5px 15px rgba(0,0,0,.4);
 }
 
 .avatar img{
@@ -1986,8 +1661,7 @@ object-fit:cover;
 .name{
 margin-top:3px;
 padding:3px 6px;
-background:
-rgba(0,0,0,.78);
+background:rgba(0,0,0,.78);
 border-radius:5px;
 font-size:10px;
 font-weight:900;
@@ -2003,34 +1677,23 @@ font-size:9px;
 font-weight:900;
 }
 
-.selected{
-outline:
-3px solid #facc15;
+.empty-slot .avatar{
+background:#777f7a;
+}
+
+.selected .avatar{
+outline:3px solid #facc15;
 outline-offset:3px;
-border-radius:50%;
-}
-
-.empty-player{
-cursor:pointer;
-}
-
-.empty-player .avatar{
-background:#777e79;
-}
-
-.empty-player .name{
-color:#d4d8d5;
 }
 
 /* PANEL */
 
 .panel{
-width:255px;
+width:270px;
 padding:15px;
 border-radius:13px;
 background:#0d1811;
-border:1px solid
-rgba(255,255,255,.12);
+border:1px solid rgba(255,255,255,.12);
 }
 
 .panel h2{
@@ -2071,41 +1734,52 @@ border-radius:7px;
 font-size:11px;
 }
 
+/* SEARCH */
+
 .search{
 width:100%;
 padding:11px;
-margin-top:4px;
-margin-bottom:8px;
-border:0;
-outline:none;
 border-radius:8px;
-background:#202a24;
+border:1px solid rgba(255,255,255,.12);
+background:#17221b;
 color:white;
+outline:none;
+margin-bottom:8px;
 }
 
 .search::placeholder{
-color:#8e9991;
+color:#87948b;
 }
 
-/* POSITION GROUPS */
+/* POSITION FILTERS */
 
-.position-section{
-margin-top:9px;
+.position-tabs{
+display:flex;
+flex-wrap:wrap;
+gap:5px;
+margin-bottom:9px;
 }
 
-.position-heading{
+.position-tab{
 padding:7px 9px;
 border-radius:7px;
 background:#202a24;
-font-size:11px;
+color:white;
+font-size:10px;
 font-weight:900;
 }
 
+.position-tab.active{
+background:#15803d;
+}
+
 .members{
-margin-top:5px;
+margin-top:10px;
 display:flex;
 flex-direction:column;
-gap:5px;
+gap:6px;
+max-height:430px;
+overflow:auto;
 }
 
 .member{
@@ -2116,6 +1790,10 @@ padding:8px;
 border-radius:7px;
 background:#17221b;
 cursor:pointer;
+}
+
+.member:hover{
+background:#223029;
 }
 
 .member img{
@@ -2137,7 +1815,7 @@ white-space:nowrap;
 margin-left:auto;
 font-size:9px;
 font-weight:900;
-color:#9ca89f;
+color:#9fb0a5;
 }
 
 /* BENCH */
@@ -2147,8 +1825,7 @@ margin-top:15px;
 padding:12px;
 border-radius:12px;
 background:#0d1811;
-border:1px solid
-rgba(255,255,255,.12);
+border:1px solid rgba(255,255,255,.12);
 }
 
 .bench-title{
@@ -2193,10 +1870,6 @@ color:#87948b;
 /* PHONE */
 
 @media(max-width:850px){
-
-body{
-overflow:auto;
-}
 
 .topbar{
 min-height:64px;
@@ -2245,7 +1918,6 @@ font-size:13px;
 
 .members{
 max-height:320px;
-overflow:auto;
 }
 
 .player{
@@ -2264,15 +1936,6 @@ max-width:105px;
 
 .position{
 font-size:8px;
-}
-
-.bench-box{
-margin-top:10px;
-}
-
-.bench-list{
-max-height:180px;
-overflow:auto;
 }
 
 }
@@ -2314,7 +1977,6 @@ height:100px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -2322,16 +1984,11 @@ height:100px;
 <div class="topbar">
 
 <div>
-
-<div class="title">
-⚽ Newcastle Lineup
-</div>
+<div class="title">⚽ Football Lineup</div>
 
 <div class="subtitle">
-${session.size}v${session.size}
-• Select players, move them and use the bench
+${session.size}v${session.size} • Select players, move them and use the bench
 </div>
-
 </div>
 
 <div class="top-buttons">
@@ -2366,17 +2023,13 @@ id="pitch"
 >
 
 <div class="halfway"></div>
-
 <div class="center-circle"></div>
-
 <div class="center-dot"></div>
 
 <div class="box top"></div>
-
 <div class="box bottom"></div>
 
 <div class="six top"></div>
-
 <div class="six bottom"></div>
 
 <div id="players"></div>
@@ -2395,11 +2048,9 @@ id="pitch"
 class="bench-list"
 id="benchList"
 >
-
 <div class="bench-empty">
 No players on the bench.
 </div>
-
 </div>
 
 </div>
@@ -2408,33 +2059,27 @@ No players on the bench.
 
 <div class="panel">
 
-<h2>
-Lineup Controls
-</h2>
+<h2>Lineup Controls</h2>
 
 <div class="info">
-
-Click a grey circle to select it.
-
-Then choose a server player.
-
-Players are sorted by their position
-from the Discord position channel.
-
-Use Move Player to drag.
-
-Players snap to the grid.
-
-Use Bench to put the selected
-player on the bench.
-
-The grey circle returns to the
-same pitch position.
-
-Click a bench player to remove
-them from the bench.
-
+Click a grey circle to select it.<br>
+Choose a player below.<br>
+Use Move Player to drag.<br>
+Use Bench to put the selected player on the bench.<br>
+Click a bench player to put them back into their original grey slot.
 </div>
+
+<input
+class="search"
+id="search"
+placeholder="🔎 Search players..."
+oninput="renderMembers()"
+>
+
+<div
+class="position-tabs"
+id="positionTabs"
+></div>
 
 <button
 class="control"
@@ -2467,14 +2112,8 @@ id="status"
 No player selected.
 </div>
 
-<input
-class="search"
-id="search"
-placeholder="🔎 Search players..."
-oninput="renderMembers()"
-/>
-
 <div
+class="members"
 id="members"
 ></div>
 
@@ -2486,11 +2125,8 @@ id="members"
 
 "use strict";
 
-const SESSION =
-"${escapeHtml(session.id)}";
-
-const CREATOR =
-"${escapeHtml(session.creatorId)}";
+const SESSION = "${escapeHtml(session.id)}";
+const CREATOR = "${escapeHtml(session.creatorId)}";
 
 const ORIGINAL =
 ${original};
@@ -2500,75 +2136,36 @@ let selected = null;
 let moving = false;
 let benchMode = false;
 let dragging = null;
+let selectedPosition = "ALL";
 
 const pitch =
-document.getElementById(
-"pitch"
-);
+document.getElementById("pitch");
 
 const players =
-document.getElementById(
-"players"
-);
+document.getElementById("players");
 
 const members =
-document.getElementById(
-"members"
-);
+document.getElementById("members");
 
 const benchList =
-document.getElementById(
-"benchList"
-);
+document.getElementById("benchList");
 
 const statusBox =
-document.getElementById(
-"status"
-);
+document.getElementById("status");
 
-const POSITION_ORDER = [
-"GK",
-"CB",
-"CM",
-"LW",
-"RW",
-"ST",
-"LB",
-"RB",
-"LM",
-"RM",
-"CAM",
-"CDM",
-"CF",
-"Other"
-];
+const searchInput =
+document.getElementById("search");
+
+const positionTabs =
+document.getElementById("positionTabs");
 
 function escapeHTML(value){
-
-return String(
-value ?? ""
-)
-.replaceAll(
-"&",
-"&amp;"
-)
-.replaceAll(
-"<",
-"&lt;"
-)
-.replaceAll(
-">",
-"&gt;"
-)
-.replaceAll(
-'"',
-"&quot;"
-)
-.replaceAll(
-"'",
-"&#039;"
-);
-
+return String(value ?? "")
+.replaceAll("&","&amp;")
+.replaceAll("<","&lt;")
+.replaceAll(">","&gt;")
+.replaceAll('"',"&quot;")
+.replaceAll("'","&#039;");
 }
 
 async function load(){
@@ -2578,21 +2175,17 @@ try{
 const response =
 await fetch(
 "/api/session/" +
-encodeURIComponent(
-SESSION
-)
+encodeURIComponent(SESSION)
 );
 
 const data =
 await response.json();
 
 if(!response.ok){
-
 throw new Error(
 data.error ||
 "Could not load lineup."
 );
-
 }
 
 state = data;
@@ -2607,9 +2200,7 @@ document.body.innerHTML =
 "<div style='padding:30px;color:white;font-family:Arial'>" +
 "<h2>❌ Lineup could not be loaded</h2>" +
 "<p>" +
-escapeHTML(
-error.message
-) +
+escapeHTML(error.message) +
 "</p></div>";
 
 }
@@ -2619,13 +2210,49 @@ error.message
 function render(){
 
 renderPlayers();
+renderMembers();
+renderBench();
+renderPositionTabs();
+updateStatus();
+
+}
+
+function renderPositionTabs(){
+
+const positions =
+["ALL","GK","LB","CB","RB","LM","CM","RM","LW","RW","ST"];
+
+positionTabs.innerHTML = "";
+
+positions.forEach(position=>{
+
+const button =
+document.createElement("button");
+
+button.className =
+"position-tab" +
+(selectedPosition(position)
+? " active"
+: "");
+
+button.textContent = position;
+
+button.onclick = ()=>{
+
+selectedPosition = position;
 
 renderMembers();
 
-renderBench();
+};
 
-updateStatus();
+positionTabs.appendChild(button);
 
+});
+
+}
+
+function selectedPosition(position){
+return selectedPosition === position;
 }
 
 function renderPlayers(){
@@ -2637,27 +2264,30 @@ state.roster.forEach(
 
 /*
 IMPORTANT:
-Never hide bench slots.
-
-If the player goes to bench,
-the SAME slot becomes a grey
-circle so another player can
-be placed there.
+Bench players are hidden from the pitch.
+Their original slot remains in the roster.
+When benched, the slot becomes an EMPTY GREY CIRCLE.
 */
 
-const el =
-document.createElement(
-"div"
+if(player.bench){
+
+createEmptySlot(
+index,
+player.x,
+player.y
 );
+
+return;
+
+}
+
+const el =
+document.createElement("div");
 
 el.className =
 "player" +
-(selected === index
-? " selected"
-: "") +
-(!player.userId
-? " empty-player"
-: "");
+(selected === index ? " selected" : "") +
+(!player.userId ? " empty-slot" : "");
 
 el.style.left =
 player.x + "%";
@@ -2665,59 +2295,35 @@ player.x + "%";
 el.style.top =
 player.y + "%";
 
-let avatarHTML = "";
+let avatar;
 
-if(
-player.userId &&
-player.avatar
-){
+if(player.avatar){
 
-avatarHTML =
+avatar =
 "<div class='avatar'>" +
 "<img src='" +
-escapeHTML(
-player.avatar
-) +
+escapeHTML(player.avatar) +
 "' draggable='false'>" +
 "</div>";
 
 }else{
 
-avatarHTML =
-"<div class='avatar'>+</div>";
-
-}
-
-let nameText =
-"Select Player";
-
-if(
-player.userId
-){
-
-nameText =
-player.name ||
-"Player";
+avatar =
+"<div class='avatar'>?</div>";
 
 }
 
 el.innerHTML =
-avatarHTML +
-
+avatar +
 "<div class='name'>" +
 escapeHTML(
-nameText
+player.name ||
+"Select Player"
 ) +
 "</div>" +
-
 "<div class='position'>" +
-escapeHTML(
-player.position ||
-"Other"
-) +
+escapeHTML(player.position) +
 "</div>";
-
-/* CLICK */
 
 el.addEventListener(
 "click",
@@ -2725,16 +2331,7 @@ event=>{
 
 event.stopPropagation();
 
-if(
-benchMode &&
-player.userId
-){
-
-sendToBench(index);
-
-return;
-
-}
+if(moving) return;
 
 selected = index;
 
@@ -2742,7 +2339,7 @@ renderPlayers();
 
 updateStatus();
 
-renderMembers();
+showMembers();
 
 });
 
@@ -2762,16 +2359,12 @@ index:index,
 pointerId:event.pointerId
 };
 
-el.classList.add(
-"dragging"
-);
+el.classList.add("dragging");
 
 try{
-
 el.setPointerCapture(
 event.pointerId
 );
-
 }catch{}
 
 });
@@ -2784,9 +2377,7 @@ if(
 !dragging ||
 dragging.element !== el
 ){
-
 return;
-
 }
 
 event.preventDefault();
@@ -2795,36 +2386,21 @@ const rect =
 pitch.getBoundingClientRect();
 
 let x =
-((event.clientX -
-rect.left) /
-rect.width) *
-100;
+((event.clientX - rect.left) /
+rect.width) * 100;
 
 let y =
-((event.clientY -
-rect.top) /
-rect.height) *
-100;
+((event.clientY - rect.top) /
+rect.height) * 100;
 
-/* GRID */
-
-x =
-Math.round(x / 5) * 5;
-
-y =
-Math.round(y / 5) * 5;
+x = Math.round(x / 5) * 5;
+y = Math.round(y / 5) * 5;
 
 x =
-Math.max(
-4,
-Math.min(96,x)
-);
+Math.max(4,Math.min(96,x));
 
 y =
-Math.max(
-5,
-Math.min(95,y)
-);
+Math.max(5,Math.min(95,y));
 
 el.style.left =
 x + "%";
@@ -2832,11 +2408,8 @@ x + "%";
 el.style.top =
 y + "%";
 
-state.roster[index].x =
-x;
-
-state.roster[index].y =
-y;
+state.roster[index].x = x;
+state.roster[index].y = y;
 
 });
 
@@ -2844,29 +2417,22 @@ el.addEventListener(
 "pointerup",
 async event=>{
 
-if(!dragging)
-return;
+if(!dragging) return;
 
 try{
-
 el.releasePointerCapture(
 event.pointerId
 );
-
 }catch{}
 
-el.classList.remove(
-"dragging"
-);
+el.classList.remove("dragging");
 
 const index =
 dragging.index;
 
 dragging = null;
 
-await saveMove(
-index
-);
+await saveMove(index);
 
 });
 
@@ -2876,138 +2442,109 @@ players.appendChild(el);
 
 }
 
+function createEmptySlot(index,x,y){
+
+const el =
+document.createElement("div");
+
+el.className =
+"player empty-slot";
+
+el.style.left =
+x + "%";
+
+el.style.top =
+y + "%";
+
+el.innerHTML =
+"<div class='avatar'>?</div>" +
+"<div class='name'>Select Player</div>" +
+"<div class='position'>" +
+escapeHTML(state.roster[index].position) +
+"</div>";
+
+el.onclick =
+event=>{
+
+event.stopPropagation();
+
+if(moving) return;
+
+selected = index;
+
+renderPlayers();
+updateStatus();
+showMembers();
+
+};
+
+players.appendChild(el);
+
+}
+
 function renderMembers(){
 
 members.innerHTML = "";
 
-if(
-!state.serverMembers
-) return;
+if(!state.serverMembers){
+return;
+}
 
-const input =
-document.getElementById(
-"search"
-);
-
-const search =
-String(
-input?.value || ""
-)
-.toLowerCase()
-.trim();
-
-const groups = {};
-
-POSITION_ORDER.forEach(
-position=>{
-groups[position] = [];
-});
-
-state.serverMembers.forEach(
-member=>{
-
-const searchable =
-(
-member.name +
-" " +
-member.username +
-" " +
-member.position
-)
+const query =
+(searchInput.value || "")
+.trim()
 .toLowerCase();
 
-if(
-search &&
-!searchable.includes(
-search
-)
-){
+const filtered =
+state.serverMembers.filter(member=>{
+
+const matchesSearch =
+!query ||
+member.name.toLowerCase().includes(query) ||
+member.username.toLowerCase().includes(query);
+
+const matchesPosition =
+selectedPosition === "ALL" ||
+member.detectedPosition === selectedPosition;
+
+return matchesSearch && matchesPosition;
+
+});
+
+if(!filtered.length){
+
+members.innerHTML =
+"<div style='padding:12px;color:#87948b;font-size:11px'>" +
+"No players found." +
+"</div>";
 
 return;
 
 }
 
-const position =
-POSITION_ORDER.includes(
-member.position
-)
-? member.position
-: "Other";
-
-groups[position].push(
-member
-);
-
-});
-
-POSITION_ORDER.forEach(
-position=>{
-
-if(
-!groups[position].length
-) return;
-
-const section =
-document.createElement(
-"div"
-);
-
-section.className =
-"position-section";
-
-section.innerHTML =
-"<div class='position-heading'>" +
-escapeHTML(position) +
-"</div>" +
-"<div class='members'></div>";
-
-const list =
-section.querySelector(
-".members"
-);
-
-groups[position].forEach(
-member=>{
+filtered.forEach(member=>{
 
 const el =
-document.createElement(
-"div"
-);
+document.createElement("div");
 
 el.className =
 "member";
 
 el.innerHTML =
 "<img src='" +
-escapeHTML(
-member.avatar
-) +
+escapeHTML(member.avatar) +
 "' draggable='false'>" +
-
 "<div class='member-name'>" +
-escapeHTML(
-member.name
-) +
+escapeHTML(member.name) +
 "</div>" +
-
 "<div class='member-position'>" +
-escapeHTML(
-member.position
-) +
+escapeHTML(member.detectedPosition || "OTHER") +
 "</div>";
 
 el.onclick =
-()=>assignPlayer(
-member
-);
+()=>assignPlayer(member);
 
-list.appendChild(el);
-
-});
-
-members.appendChild(
-section
-);
+members.appendChild(el);
 
 });
 
@@ -3019,14 +2556,10 @@ benchList.innerHTML = "";
 
 const bench =
 state.roster.filter(
-p =>
-p.bench &&
-p.userId
+p => p.bench && p.userId
 );
 
-if(
-!bench.length
-){
+if(!bench.length){
 
 benchList.innerHTML =
 "<div class='bench-empty'>" +
@@ -3037,58 +2570,53 @@ return;
 
 }
 
-bench.forEach(
-player=>{
+bench.forEach(player=>{
 
 const el =
-document.createElement(
-"div"
-);
+document.createElement("div");
 
 el.className =
 "bench-player";
 
 el.innerHTML =
 "<img src='" +
-escapeHTML(
-player.avatar
-) +
+escapeHTML(player.avatar) +
 "' draggable='false'>" +
-
 "<div>" +
-
 "<div class='bench-player-name'>" +
-escapeHTML(
-player.name
-) +
+escapeHTML(player.name) +
 "</div>" +
-
 "<div style='font-size:9px;color:#9ca89f'>" +
-escapeHTML(
-player.position
-) +
+escapeHTML(player.position) +
 "</div>" +
-
 "</div>";
 
+/*
+Clicking bench player:
+they return to THEIR OLD GREY CIRCLE.
+*/
+
 el.onclick =
-()=>removeFromBench(
-player.slot
-);
+()=>removeFromBench(player.slot);
 
-benchList.appendChild(
-el
-);
+benchList.appendChild(el);
 
+});
+
+}
+
+function showMembers(){
+
+members.scrollIntoView({
+behavior:"smooth",
+block:"nearest"
 });
 
 }
 
 function updateStatus(){
 
-if(
-selected === null
-){
+if(selected === null){
 
 statusBox.textContent =
 "No player selected.";
@@ -3098,9 +2626,7 @@ return;
 }
 
 const player =
-state.roster[
-selected
-];
+state.roster[selected];
 
 statusBox.innerHTML =
 "<b>Selected:</b> " +
@@ -3108,35 +2634,21 @@ escapeHTML(
 player.name ||
 "Empty slot"
 ) +
-
 "<br>" +
-
 "<b>Position:</b> " +
-escapeHTML(
-player.position ||
-"Other"
-) +
-
-(
-player.bench
-?
-"<br><b>Status:</b> On Bench"
-:
-""
-);
+escapeHTML(player.position) +
+(player.bench
+? "<br><b>Status:</b> On Bench"
+: "");
 
 }
 
-async function assignPlayer(
-member
-){
+async function assignPlayer(member){
 
-if(
-selected === null
-){
+if(selected === null){
 
 alert(
-"Click a grey circle first."
+"Click a grey player circle first."
 );
 
 return;
@@ -3155,18 +2667,12 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 session:SESSION,
-
 uid:CREATOR,
-
 slot:selected,
-
 userId:member.id
-
 })
-}
-);
+});
 
 const data =
 await response.json();
@@ -3180,22 +2686,14 @@ data.error ||
 
 }
 
-state.roster[
-selected
-] =
+state.roster[selected] =
 data.slot;
-
-benchMode = false;
-
-updateBenchButton();
 
 render();
 
 }catch(error){
 
-alert(
-error.message
-);
+alert(error.message);
 
 }
 
@@ -3203,9 +2701,7 @@ error.message
 
 async function changePosition(){
 
-if(
-selected === null
-){
+if(selected === null){
 
 alert(
 "Select a player first."
@@ -3216,27 +2712,20 @@ return;
 }
 
 const player =
-state.roster[
-selected
-];
+state.roster[selected];
 
 const position =
 prompt(
 "Type the position:",
-player.position ||
-"Other"
+player.position
 );
 
-if(
-position === null
-)
-return;
+if(position === null) return;
 
 const clean =
 position.trim();
 
-if(!clean)
-return;
+if(!clean) return;
 
 try{
 
@@ -3250,18 +2739,12 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 session:SESSION,
-
 uid:CREATOR,
-
 slot:selected,
-
 position:clean
-
 })
-}
-);
+});
 
 const data =
 await response.json();
@@ -3275,18 +2758,14 @@ data.error ||
 
 }
 
-state.roster[
-selected
-] =
+state.roster[selected] =
 data.slot;
 
 render();
 
 }catch(error){
 
-alert(
-error.message
-);
+alert(error.message);
 
 }
 
@@ -3294,9 +2773,7 @@ error.message
 
 function toggleMove(){
 
-if(
-selected === null
-){
+if(selected === null){
 
 alert(
 "Select a player first."
@@ -3311,12 +2788,9 @@ moving = !moving;
 if(moving){
 
 benchMode = false;
-
 updateBenchButton();
 
-pitch.classList.add(
-"grid-on"
-);
+pitch.classList.add("grid-on");
 
 }
 
@@ -3333,18 +2807,14 @@ document.getElementById(
 
 if(moving){
 
-button.classList.add(
-"active"
-);
+button.classList.add("active");
 
 button.textContent =
 "✓ Moving — Grid Snap ON";
 
 }else{
 
-button.classList.remove(
-"active"
-);
+button.classList.remove("active");
 
 button.textContent =
 "↔ Move Player";
@@ -3355,26 +2825,23 @@ button.textContent =
 
 function toggleBenchMode(){
 
-if(
-selected === null
-){
+if(selected === null){
 
 alert(
-"Select a player first."
+"Select a player first, then click Bench."
 );
 
 return;
 
 }
 
-if(
-!state.roster[
-selected
-].userId
-){
+const player =
+state.roster[selected];
+
+if(!player.userId){
 
 alert(
-"Put a player in the slot first."
+"Select a player who has been assigned first."
 );
 
 return;
@@ -3386,7 +2853,6 @@ benchMode = !benchMode;
 if(benchMode){
 
 moving = false;
-
 updateMoveButton();
 
 }
@@ -3424,9 +2890,7 @@ button.textContent =
 
 }
 
-async function sendToBench(
-index
-){
+async function sendToBench(index){
 
 try{
 
@@ -3440,18 +2904,12 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 session:SESSION,
-
 uid:CREATOR,
-
 slot:index,
-
 bench:true
-
 })
-}
-);
+});
 
 const data =
 await response.json();
@@ -3465,19 +2923,11 @@ data.error ||
 
 }
 
-state.roster[
-index
-] =
+state.roster[index] =
 data.slot;
 
-/*
-Keep the selected slot selected.
-It is now a grey empty circle.
-*/
-
-selected = index;
-
 benchMode = false;
+selected = null;
 
 updateBenchButton();
 
@@ -3485,17 +2935,13 @@ render();
 
 }catch(error){
 
-alert(
-error.message
-);
+alert(error.message);
 
 }
 
 }
 
-async function removeFromBench(
-index
-){
+async function removeFromBench(index){
 
 try{
 
@@ -3509,18 +2955,12 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 session:SESSION,
-
 uid:CREATOR,
-
 slot:index,
-
 bench:false
-
 })
-}
-);
+});
 
 const data =
 await response.json();
@@ -3534,9 +2974,7 @@ data.error ||
 
 }
 
-state.roster[
-index
-] =
+state.roster[index] =
 data.slot;
 
 selected = index;
@@ -3545,22 +2983,16 @@ render();
 
 }catch(error){
 
-alert(
-error.message
-);
+alert(error.message);
 
 }
 
 }
 
-async function saveMove(
-index
-){
+async function saveMove(index){
 
 const player =
-state.roster[
-index
-];
+state.roster[index];
 
 try{
 
@@ -3574,27 +3006,18 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 session:SESSION,
-
 uid:CREATOR,
-
 slot:index,
-
 x:player.x,
-
 y:player.y
-
 })
-}
-);
+});
 
 if(!response.ok){
-
 console.error(
 "Move save failed"
 );
-
 }
 
 }catch(error){
@@ -3615,20 +3038,15 @@ if(
 "Reset all players?"
 )
 ){
-
 return;
-
 }
 
 state.roster.forEach(
 (player,index)=>{
 
 player.userId = null;
-
 player.name = "";
-
 player.avatar = "";
-
 player.bench = false;
 
 player.x =
@@ -3640,14 +3058,8 @@ ORIGINAL[index].y;
 });
 
 selected = null;
-
 moving = false;
-
 benchMode = false;
-
-updateMoveButton();
-
-updateBenchButton();
 
 render();
 
@@ -3662,9 +3074,7 @@ try{
 const response =
 await fetch(
 "/api/session/" +
-encodeURIComponent(
-SESSION
-),
+encodeURIComponent(SESSION),
 {
 method:"POST",
 headers:{
@@ -3672,28 +3082,20 @@ headers:{
 "application/json"
 },
 body:JSON.stringify({
-
 uid:CREATOR,
-
 roster:state.roster
-
 })
-}
-);
+});
 
 if(!response.ok){
-
 console.error(
 "Save failed"
 );
-
 }
 
 }catch(error){
 
-console.error(
-error
-);
+console.error(error);
 
 }
 
@@ -3706,17 +3108,13 @@ if(
 "Finish this lineup and post it to the Discord channel?"
 )
 ){
-
 return;
-
 }
 
 await saveAll();
 
 const button =
-document.querySelector(
-".finish"
-);
+document.querySelector(".finish");
 
 button.disabled = true;
 
@@ -3728,9 +3126,7 @@ try{
 const response =
 await fetch(
 "/api/finish/" +
-encodeURIComponent(
-SESSION
-),
+encodeURIComponent(SESSION),
 {
 method:"POST",
 headers:{
@@ -3740,8 +3136,7 @@ headers:{
 body:JSON.stringify({
 uid:CREATOR
 })
-}
-);
+});
 
 const data =
 await response.json();
@@ -3765,9 +3160,7 @@ button.disabled = false;
 button.textContent =
 "✓ Done";
 
-alert(
-error.message
-);
+alert(error.message);
 
 }
 
@@ -3778,6 +3171,5 @@ load();
 </script>
 
 </body>
-
 </html>`;
 }
